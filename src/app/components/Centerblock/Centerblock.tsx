@@ -3,6 +3,8 @@
 import styles from "./Centerblock.module.css";
 import { usePlayer } from "@/app/context/PlayerContext";
 import { tracks } from "@/app/data/tracks";
+import TrackItem from "@/app/components/TrackItem/TrackItem";
+
 
 type Track = {
   id: number;
@@ -56,48 +58,12 @@ export default function Centerblock() {
           <div className={`${styles.playlistTitle__col} ${styles.col04}`}></div>
         </div>
 
-        <div className={styles.content__playlist}>
-          {(tracks as Track[]).map((track: Track) => (
-            <div
-              key={track.id}
-              className={styles.playlist__item}
-              onClick={() => playTrack(track)}
-              style={{ cursor: "pointer" }}
-            >
-              <div className={styles.playlist__track}>
-                <div className={styles.track__title}>
-                  <div className={styles.track__titleImage}>
-                    <svg className={styles.track__titleSvg}>
-                      <use xlinkHref="/img/icon/sprite.svg#icon-note"></use>
-                    </svg>
-                  </div>
+       <div className={styles.content__playlist}>
+  {tracks.map((track) => (
+    <TrackItem key={track.id} track={track} />
+  ))}
+</div>
 
-                  <span className={styles.track__titleLink}>
-                    {track.title}
-                  </span>
-                </div>
-
-                <div className={styles.track__author}>
-                  <span className={styles.track__authorLink}>
-                    {track.author}
-                  </span>
-                </div>
-
-                <div className={styles.track__album}>
-                  <span className={styles.track__albumLink}>
-                    {track.album}
-                  </span>
-                </div>
-
-                <div className={styles.track__time}>
-                  <span className={styles.track__timeText}>
-                    {track.duration}
-                  </span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
       </div>
     </div>
   );

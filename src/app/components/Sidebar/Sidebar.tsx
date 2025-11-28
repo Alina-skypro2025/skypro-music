@@ -4,16 +4,19 @@ import Image from 'next/image';
 import styles from './Sidebar.module.css';
 
 export default function Sidebar() {
-
   return (
     <div className={styles.main__sidebar}>
       <div className={styles.sidebar__personal}>
         <p className={styles.sidebar__personalName}>Sergey.Ivanov</p>
-        <div className={styles.sidebar__icon}>
-          <svg>
-            <use xlinkHref="/img/icon/sprite.svg#logout"></use>
-          </svg>
-        </div>
+       <div className={styles.sidebar__icon}>
+  <Image 
+    src="/img/icon/logout.svg" 
+    width={24}
+    height={24}
+    alt="logout"
+  />
+</div>
+
       </div>
 
       <div className={styles.sidebar__block}>
