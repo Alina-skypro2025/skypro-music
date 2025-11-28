@@ -1,0 +1,54 @@
+.playlist__item {
+  width: 100%;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.playlist__track {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 60px;
+  align-items: center;
+}
+
+.track__title {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+
+.track__titleImage {
+  width: 51px;
+  height: 51px;
+  background: #313131;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.track__titleSvg {
+  width: 18px;
+  height: 18px;
+  fill: #4e4e4e;
+}
+
+.track__titleLink {
+  color: #ffffff;
+  font-size: 16px;
+  white-space: nowrap;
+}
+
+.track__authorLink {
+  color: #ffffff;
+  font-size: 16px;
+}
+
+.track__albumLink {
+  color: #ffffff;
+  font-size: 16px;
+}
+
+.track__timeText {
+  color: #ffffff;
+  font-size: 16px;
+}

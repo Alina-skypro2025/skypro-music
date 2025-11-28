@@ -53,3 +53,13 @@
   height: 17px;
   color: #181818;
 }
+.menu__list {
+  list-style: none; 
+  padding: 0;
+  margin: 0;
+}
+
+.menu__item a {
+  text-decoration: none; 
+  color: #fff; 
+}
