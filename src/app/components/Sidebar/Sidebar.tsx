@@ -4,7 +4,6 @@ import Image from 'next/image';
 import styles from './Sidebar.module.css';
 
 export default function Sidebar() {
-
   return (
     <div className={styles.main__sidebar}>
       <div className={styles.sidebar__personal}>
