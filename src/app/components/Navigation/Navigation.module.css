@@ -28,8 +28,11 @@
 }
 
 .nav__menu {
-  display: block;
-  visibility: visible;
+   max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
 }
 
 .menu__list {
@@ -62,4 +65,10 @@
 .menu__item a {
   text-decoration: none; 
   color: #fff; 
+}
+.nav__menu_open {
+  max-height: 300px; 
+  opacity: 1;
+  visibility: visible;
+  transition: all 0.3s ease;
 }
