@@ -1,31 +1,36 @@
 "use client";
 
 import styles from "./Centerblock.module.css";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { tracks } from "@/app/data/tracks";
 import TrackItem from "@/app/components/TrackItem/TrackItem";
 
-type Track = {
-  id: number;
-  title: string;
-  author: string;
-  album: string;
-  duration: string;
-  src: string;
-};
-
 export default function Centerblock() {
-
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  const [dropdownPos, setDropdownPos] = useState({ left: 0 });
 
-  
+  const filterRef = useRef<HTMLDivElement | null>(null);
+
   const authors = [...new Set(tracks.map((t) => t.author))];
   const albums = [...new Set(tracks.map((t) => t.album))];
-  const years = [...new Set(tracks.map((t) => t.duration))]; 
+  const years = [...new Set(tracks.map((t) => t.duration))];
 
-  const toggleFilter = (name: string) => {
-   
-    if (activeFilter === name) return setActiveFilter(null);
+  // вычисляем позицию кнопки
+  const toggleFilter = (name: string, event?: any) => {
+    if (activeFilter === name) {
+      setActiveFilter(null);
+      return;
+    }
+
+    if (event) {
+      const rect = event.target.getBoundingClientRect();
+      const parentRect = filterRef.current!.getBoundingClientRect();
+
+      setDropdownPos({
+        left: rect.left - parentRect.left,
+      });
+    }
+
     setActiveFilter(name);
   };
 
@@ -44,65 +49,69 @@ export default function Centerblock() {
 
       <h2 className={styles.centerblock__h2}>Треки</h2>
 
-      
-      <div className={styles.centerblock__filter}>
-        <span className={styles.filter__title}>Искать по:</span>
+      {/* Фильтры */}
+      <div className={styles.filter__wrapper} ref={filterRef}>
+        <div className={styles.centerblock__filter}>
+          <span className={styles.filter__title}>Искать по:</span>
 
-        <button
-          className={`${styles.filter__button} ${
-            activeFilter === "author" ? styles.active : ""
-          }`}
-          onClick={() => toggleFilter("author")}
-        >
-          Исполнителю
-        </button>
+          <button
+            className={`${styles.filter__button} ${
+              activeFilter === "author" ? styles.active : ""
+            }`}
+            onClick={(e) => toggleFilter("author", e)}
+          >
+            Исполнителю
+          </button>
 
-        <button
-          className={`${styles.filter__button} ${
-            activeFilter === "year" ? styles.active : ""
-          }`}
-          onClick={() => toggleFilter("year")}
-        >
-          Году
-        </button>
+          <button
+            className={`${styles.filter__button} ${
+              activeFilter === "year" ? styles.active : ""
+            }`}
+            onClick={(e) => toggleFilter("year", e)}
+          >
+            Году
+          </button>
 
-        <button
-          className={`${styles.filter__button} ${
-            activeFilter === "genre" ? styles.active : ""
-          }`}
-          onClick={() => toggleFilter("genre")}
-        >
-          Жанру
-        </button>
+          <button
+            className={`${styles.filter__button} ${
+              activeFilter === "genre" ? styles.active : ""
+            }`}
+            onClick={(e) => toggleFilter("genre", e)}
+          >
+            Жанру
+          </button>
+        </div>
+
+        {/* Dropdown */}
+        {activeFilter && (
+          <div
+            className={styles.filter__list}
+            style={{ left: dropdownPos.left }}
+          >
+            {activeFilter === "author" &&
+              authors.map((name) => (
+                <span key={name} className={styles.filter__item}>
+                  {name}
+                </span>
+              ))}
+
+            {activeFilter === "year" &&
+              years.map((year) => (
+                <span key={year} className={styles.filter__item}>
+                  {year}
+                </span>
+              ))}
+
+            {activeFilter === "genre" &&
+              albums.map((album) => (
+                <span key={album} className={styles.filter__item}>
+                  {album}
+                </span>
+              ))}
+          </div>
+        )}
       </div>
 
-      
-      {activeFilter && (
-        <div className={styles.filter__list}>
-          {activeFilter === "author" &&
-            authors.map((name) => (
-              <span key={name} className={styles.filter__item}>
-                {name}
-              </span>
-            ))}
-
-          {activeFilter === "year" &&
-            years.map((year) => (
-              <span key={year} className={styles.filter__item}>
-                {year}
-              </span>
-            ))}
-
-          {activeFilter === "genre" &&
-            albums.map((album) => (
-              <span key={album} className={styles.filter__item}>
-                {album}
-              </span>
-            ))}
-        </div>
-      )}
-
-     
       <div className={styles.centerblock__content}>
         <div className={styles.content__title}>
           <div className={`${styles.playlistTitle__col} ${styles.col01}`}>
