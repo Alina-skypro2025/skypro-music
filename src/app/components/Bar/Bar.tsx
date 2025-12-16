@@ -1,36 +1,73 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import styles from "./Bar.module.css";
 import { useSelector, useDispatch } from "react-redux";
-import { togglePlay, setVolume } from "@/app/store/playerSlice";
+import {
+  togglePlay,
+  setVolume,
+  nextTrack,
+  prevTrack,
+  toggleShuffle,
+  toggleLoop,
+} from "@/app/store/playerSlice";
+
+function formatTime(seconds: number) {
+  if (!seconds || Number.isNaN(seconds)) return "0:00";
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  const sStr = s < 10 ? `0${s}` : String(s);
+  return `${m}:${sStr}`;
+}
 
 export default function Bar() {
   const dispatch = useDispatch();
-  const { currentTrack, isPlaying, volume } = useSelector(
+  const { currentTrack, isPlaying, volume, isShuffle, isLoop } = useSelector(
     (state: any) => state.player
   );
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Обновляем громкость
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+
+  
   useEffect(() => {
     if (!audioRef.current) return;
     audioRef.current.volume = volume;
   }, [volume]);
 
-  // При смене трека — меняем src и запускаем при isPlaying = true
+  
   useEffect(() => {
     if (!audioRef.current || !currentTrack) return;
+
     audioRef.current.src = currentTrack.src;
+    audioRef.current.load();
+    setCurrentTime(0);
 
     if (isPlaying) {
-      audioRef.current.play();
+      audioRef.current
+        .play()
+        .catch(() => {
+        
+        });
+    }
+  }, [currentTrack]);
+
+ 
+  useEffect(() => {
+    if (!audioRef.current) return;
+    if (isPlaying) {
+      audioRef.current
+        .play()
+        .catch(() => {
+          
+        });
     } else {
       audioRef.current.pause();
     }
-  }, [currentTrack, isPlaying]);
+  }, [isPlaying]);
 
   const handleTogglePlay = () => {
     if (!currentTrack) return;
@@ -38,26 +75,77 @@ export default function Bar() {
   };
 
   const handlePrevClick = () => {
-    alert("Еще не реализовано");
+    dispatch(prevTrack());
   };
 
   const handleNextClick = () => {
-    alert("Еще не реализовано");
+    dispatch(nextTrack());
   };
 
   const handleShuffleClick = () => {
-    alert("Еще не реализовано");
+    dispatch(toggleShuffle());
+  };
+
+  const handleLoopClick = () => {
+    dispatch(toggleLoop());
   };
 
   const handleVolumeChange = (e: any) => {
     dispatch(setVolume(Number(e.target.value)));
   };
 
+  const handleTimeUpdate = () => {
+    if (!audioRef.current) return;
+    setCurrentTime(audioRef.current.currentTime || 0);
+  };
+
+  const handleLoadedMetadata = () => {
+    if (!audioRef.current) return;
+    setDuration(audioRef.current.duration || 0);
+  };
+
+  const handleEnded = () => {
+    if (isLoop && audioRef.current) {
+      audioRef.current.currentTime = 0;
+      audioRef.current.play().catch(() => {});
+    } else {
+      dispatch(nextTrack());
+    }
+  };
+
+  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!audioRef.current || !duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const percent = clickX / rect.width;
+    const newTime = duration * percent;
+    audioRef.current.currentTime = newTime;
+    setCurrentTime(newTime);
+  };
+
+  const progressPercent =
+    duration > 0 ? Math.min((currentTime / duration) * 100, 100) : 0;
+
   return (
     <>
       <div className={styles.bar}>
         <div className={styles.bar__content}>
-          <div className={styles.bar__playerProgress}></div>
+          {/* Прогресс трека */}
+          <div
+            className={styles.bar__playerProgress}
+            onClick={handleProgressClick}
+          >
+            <div
+              className={styles.bar__playerProgressFilled}
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+
+          {/* Текущее время / общее время */}
+          <div className={styles.bar__time}>
+            <span>{formatTime(currentTime)}</span>
+            <span>{formatTime(duration)}</span>
+          </div>
 
           <div className={styles.bar__playerBlock}>
             <div className={styles.bar__player}>
@@ -109,9 +197,12 @@ export default function Bar() {
                   />
                 </div>
 
+                {/* Кнопка повтора трека */}
                 <div
-                  onClick={handleShuffleClick}
-                  className={styles.player__btnRepeat}
+                  onClick={handleLoopClick}
+                  className={`${styles.player__btnRepeat} ${
+                    isLoop ? styles.player__btnRepeat_active : ""
+                  }`}
                 >
                   <Image
                     src="/img/icon/repeat.svg"
@@ -122,9 +213,12 @@ export default function Bar() {
                   />
                 </div>
 
+                {/* Кнопка перемешивания */}
                 <div
                   onClick={handleShuffleClick}
-                  className={styles.player__btnShuffle}
+                  className={`${styles.player__btnShuffle} ${
+                    isShuffle ? styles.player__btnShuffle_active : ""
+                  }`}
                 >
                   <Image
                     src="/img/icon/shuffle.svg"
@@ -215,7 +309,12 @@ export default function Bar() {
       </div>
 
       {/* Скрытый audio-элемент */}
-      <audio ref={audioRef} />
+      <audio
+        ref={audioRef}
+        onTimeUpdate={handleTimeUpdate}
+        onLoadedMetadata={handleLoadedMetadata}
+        onEnded={handleEnded}
+      />
     </>
   );
 }

@@ -15,7 +15,7 @@ export default function Centerblock() {
   const albums = [...new Set(tracks.map((t) => t.album))];
   const years = [...new Set(tracks.map((t) => t.duration))];
 
-  // вычисляем позицию кнопки
+ 
   const toggleFilter = (name: string, event?: any) => {
     if (activeFilter === name) {
       setActiveFilter(null);
