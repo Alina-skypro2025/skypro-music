@@ -1,34 +1,44 @@
 "use client";
 
 import styles from "./TrackItem.module.css";
-import { usePlayer } from "@/app/context/PlayerContext";
+import { useDispatch, useSelector } from "react-redux";
+import { playTrack } from "@/app/store/playerSlice";
 
-export default function TrackItem({ track }) {
-  const { setCurrentTrack, setIsPlaying, audioRef } = usePlayer() as any;
+export default function TrackItem({ track }: any) {
+  const dispatch = useDispatch();
+  const { currentTrack, isPlaying } = useSelector(
+    (state: any) => state.player
+  );
 
-  const playTrack = () => {
-    setCurrentTrack(track);
-    setIsPlaying(true);
+  const isCurrent = currentTrack && currentTrack.id === track.id;
 
-    setTimeout(() => {
-      audioRef?.current?.play();
-    }, 100);
+  const handleClick = () => {
+    dispatch(playTrack(track));
   };
 
   return (
     <div
       className={styles.playlist__item}
-      onClick={playTrack}
+      onClick={handleClick}
       style={{ cursor: "pointer" }}
     >
       <div className={styles.playlist__track}>
-        
         <div className={styles.track__title}>
+          {/* Фиолетовая точка слева от иконки, если трек текущий */}
+          {isCurrent && (
+            <div
+              className={`${styles.track__indicator} ${
+                isPlaying ? styles.track__indicator_pulse : ""
+              }`}
+            />
+          )}
+
           <div className={styles.track__titleImage}>
             <svg className={styles.track__titleSvg}>
               <use xlinkHref="/img/icon/sprite.svg#icon-note"></use>
             </svg>
           </div>
+
           <span className={styles.track__titleLink}>{track.title}</span>
         </div>
 
@@ -43,7 +53,6 @@ export default function TrackItem({ track }) {
         <div className={styles.track__time}>
           <span className={styles.track__timeText}>{track.duration}</span>
         </div>
-
       </div>
     </div>
   );
