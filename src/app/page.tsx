@@ -1,23 +1,24 @@
-import Navigation from './components/Navigation/Navigation';
+import styles from "./page.module.css";
+import Navigation from "./components/Navigation/Navigation";
 import Centerblock from "./components/Centerblock/Centerblock";
-import Sidebar from './components/Sidebar/Sidebar';
-import Bar from './components/Bar/Bar';
-import styles from './page.module.css';
+import Sidebar from "./components/Sidebar/Sidebar";
+import Bar from "./components/Bar/Bar";
 
 export default function Home() {
   return (
-    <div className={styles.wrapper}>
-      <div className={styles.container}>
-        <main className={styles.main}>
-          <Navigation />
-          <Centerblock />
-          <Sidebar />
-        </main>
+    <div className={styles.page}>
+      
+      {/* Хедер во всю ширину */}
+      <Navigation />
 
-        <Bar />
-
-        <footer className={styles.footer}></footer>
+      {/* Контентная область по центру */}
+      <div className={styles.page__content}>
+        <Centerblock />
+        <Sidebar />
       </div>
+
+      {/* Плеер снизу */}
+      <Bar />
     </div>
   );
 }

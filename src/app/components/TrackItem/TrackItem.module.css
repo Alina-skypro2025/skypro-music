@@ -1,80 +1,80 @@
 .playlist__item {
   width: 100%;
-  display: block;
-  margin-bottom: 12px;
+  cursor: pointer;
 }
 
 .playlist__track {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr 60px;
+  grid-template-columns: 260px 200px 200px 60px;
   align-items: center;
+  margin-bottom: 12px;
 }
 
-.track__title {
+
+.track__iconWrapper {
   display: flex;
-  flex-direction: row;
   align-items: center;
   gap: 12px;
 }
 
-.track__titleImage {
+
+.track__icon {
   width: 51px;
   height: 51px;
   background: #313131;
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
+  position: relative;
+
+  
+  flex-shrink: 0;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
-.track__titleSvg {
+
+.track__iconSvg {
   width: 18px;
   height: 18px;
   fill: #4e4e4e;
 }
 
-.track__titleLink {
-  color: #ffffff;
-  font-size: 16px;
-  white-space: nowrap;
-}
 
-.track__authorLink {
-  color: #ffffff;
-  font-size: 16px;
-}
-
-.track__albumLink {
-  color: #ffffff;
-  font-size: 16px;
-}
-
-.track__timeText {
-  color: #ffffff;
-  font-size: 16px;
-}
 .track__indicator {
-  width: 8px;
-  height: 8px;
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  background: #b672ff;
   border-radius: 50%;
-  background-color: #ad61ff; /* фиолетовая */
-  margin-right: 12px;
+
+  top: 50%;
+  left: 16px;
+  transform: translateY(-50%);
+
+  pointer-events: none;
+  z-index: 3;
 }
+
+
+
+
 
 .track__indicator_pulse {
-  animation: track-pulse 1s infinite ease-in-out;
+  animation: pulse 1.1s infinite ease-in-out;
 }
 
-@keyframes track-pulse {
-  0% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.6);
-    opacity: 0.6;
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
+@keyframes pulse {
+  0% { transform: translateY(-50%) scale(1); opacity: 1; }
+  50% { transform: translateY(-50%) scale(1.8); opacity: .5; }
+  100% { transform: translateY(-50%) scale(1); opacity: 1; }
 }
+
+.track__titleLink,
+.track__authorLink,
+.track__albumLink,
+.track__time {
+  font-size: 16px;
+  color: white;
+}
+

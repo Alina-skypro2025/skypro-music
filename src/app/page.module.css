@@ -14,8 +14,36 @@
 }
 
 .main {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  flex: 1 1 auto;
+ min-height: 100vh;
+  background-color: #181818;
+
+}
+
+.main__content {
+  max-width: 1136px;      
+  margin: 0 auto;        
+  padding: 90px 16px 90px; 
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 250px; 
+  column-gap: 50px;
+}
+
+.page {
+  width: 100%;
+  min-height: 100vh;
+  background-color: #181818;
+  overflow-x: hidden;
+}
+
+
+.page__content {
+  max-width: 1136px;
+  margin: 0 auto;
+
+  padding-top: 90px;
+  padding-bottom: 110px; 
+
+  display: grid;
+  grid-template-columns: 1fr 250px;
+  column-gap: 50px;
 }
