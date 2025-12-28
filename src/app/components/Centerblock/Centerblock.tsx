@@ -1,44 +1,106 @@
 "use client";
 
 import styles from "./Centerblock.module.css";
-import { useState, useRef, useEffect } from "react";
-import { tracks } from "@/app/data/tracks";
+import { useEffect, useState } from "react";
+import { getAllTracks } from "@/app/api/tracks";
+import { Track } from "@/app/types/track";
 import TrackItem from "@/app/components/TrackItem/TrackItem";
+import Loader from "@/app/components/Loader/Loader";
+
+type FilterType = "author" | "album" | "genre" | "year" | null;
+type SortType = "default" | "old" | "new";
 
 export default function Centerblock() {
-  const [activeFilter, setActiveFilter] = useState<string | null>(null);
-  const [dropdownPos, setDropdownPos] = useState({ left: 0 });
+  const [tracks, setTracks] = useState<Track[]>([]);
+  const [filteredTracks, setFilteredTracks] = useState<Track[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const filterRef = useRef<HTMLDivElement | null>(null);
+  const [activeFilter, setActiveFilter] = useState<FilterType>(null);
+  const [selectedValue, setSelectedValue] = useState<string | null>(null);
+  const [activeSort, setActiveSort] = useState<SortType>("default");
 
-  const authors = [...new Set(tracks.map((t) => t.author))];
-  const albums = [...new Set(tracks.map((t) => t.album))];
-  const years = [...new Set(tracks.map((t) => t.duration))];
+  useEffect(() => {
+    async function loadTracks() {
+      try {
+        const data = await getAllTracks();
+        setTracks(data);
+        setFilteredTracks(data);
+      } catch {
+        setError("Не удалось загрузить треки");
+      } finally {
+        setLoading(false);
+      }
+    }
 
-  const toggleFilter = (name: string, event?: any) => {
-    if (activeFilter === name) {
+    loadTracks();
+  }, []);
+
+  
+  const authors = Array.from(new Set(tracks.map(t => t.author)));
+  const albums = Array.from(new Set(tracks.map(t => t.album)));
+  const genres = Array.from(
+    new Set(tracks.flatMap(t => t.genre ?? []))
+  );
+
+  
+  const toggleFilter = (type: FilterType) => {
+    if (activeFilter === type) {
       setActiveFilter(null);
-      return;
+      setSelectedValue(null);
+      setFilteredTracks(tracks);
+    } else {
+      setActiveFilter(type);
+      setSelectedValue(null);
     }
-
-    if (event) {
-      const rect = event.target.getBoundingClientRect();
-      const parentRect = filterRef.current!.getBoundingClientRect();
-
-      setDropdownPos({
-        left: rect.left - parentRect.left,
-      });
-    }
-
-    setActiveFilter(name);
   };
+
+ 
+  const applyFilter = (type: FilterType, value: string) => {
+    setSelectedValue(value);
+
+    const result = tracks.filter(track => {
+      if (type === "author") return track.author === value;
+      if (type === "album") return track.album === value;
+      if (type === "genre") return track.genre?.includes(value);
+      return true;
+    });
+
+    setFilteredTracks(result);
+  };
+
+ 
+  const applySort = (type: SortType) => {
+    setActiveSort(type);
+
+    let sorted = [...filteredTracks];
+
+    if (type === "old") {
+      sorted.sort(
+        (a, b) => (a.release_date ?? 0) - (b.release_date ?? 0)
+      );
+    }
+
+    if (type === "new") {
+      sorted.sort(
+        (a, b) => (b.release_date ?? 0) - (a.release_date ?? 0)
+      );
+    }
+
+    if (type === "default") {
+      sorted = [...tracks];
+    }
+
+    setFilteredTracks(sorted);
+  };
+
+  if (loading) return <Loader />;
+  if (error) return <div className={styles.error}>{error}</div>;
 
   return (
     <div className={styles.centerblock}>
+    
       <div className={styles.centerblock__search}>
-        <svg className={styles.search__svg}>
-          <use xlinkHref="/img/icon/sprite.svg#icon-search"></use>
-        </svg>
         <input
           className={styles.search__text}
           type="search"
@@ -48,86 +110,167 @@ export default function Centerblock() {
 
       <h2 className={styles.centerblock__h2}>Треки</h2>
 
-      {/* Фильтры */}
-      <div className={styles.filter__wrapper} ref={filterRef}>
-        <div className={styles.centerblock__filter}>
-          <span className={styles.filter__title}>Искать по:</span>
+      
+      <div className={styles.centerblock__filter}>
+        <span className={styles.filter__title}>Искать по:</span>
 
+        <div className={styles.filter__wrapper}>
           <button
             className={`${styles.filter__button} ${
-              activeFilter === "author" ? styles.active : ""
+              activeFilter === "author" ? styles.filter__button_active : ""
             }`}
-            onClick={(e) => toggleFilter("author", e)}
+            onClick={() => toggleFilter("author")}
           >
-            Исполнителю
+            исполнителю
           </button>
 
-          <button
-            className={`${styles.filter__button} ${
-              activeFilter === "year" ? styles.active : ""
-            }`}
-            onClick={(e) => toggleFilter("year", e)}
-          >
-            Году
-          </button>
-
-          <button
-            className={`${styles.filter__button} ${
-              activeFilter === "genre" ? styles.active : ""
-            }`}
-            onClick={(e) => toggleFilter("genre", e)}
-          >
-            Жанру
-          </button>
+          {activeFilter === "author" && (
+            <div className={styles.filter__dropdown}>
+              <div className={styles.filter__list}>
+                {authors.map(author => (
+                  <div
+                    key={author}
+                    className={`${styles.filter__item} ${
+                      selectedValue === author
+                        ? styles.filter__item_active
+                        : ""
+                    }`}
+                    onClick={() => applyFilter("author", author)}
+                  >
+                    {author}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Dropdown */}
-        {activeFilter && (
-          <div
-            className={styles.filter__list}
-            style={{ left: dropdownPos.left }}
+        <div className={styles.filter__wrapper}>
+          <button
+            className={`${styles.filter__button} ${
+              activeFilter === "album" ? styles.filter__button_active : ""
+            }`}
+            onClick={() => toggleFilter("album")}
           >
-            {activeFilter === "author" &&
-              authors.map((name) => (
-                <span key={name} className={styles.filter__item}>
-                  {name}
-                </span>
-              ))}
+            альбому
+          </button>
 
-            {activeFilter === "year" &&
-              years.map((year) => (
-                <span key={year} className={styles.filter__item}>
-                  {year}
-                </span>
-              ))}
+          {activeFilter === "album" && (
+            <div className={styles.filter__dropdown}>
+              <div className={styles.filter__list}>
+                {albums.map(album => (
+                  <div
+                    key={album}
+                    className={`${styles.filter__item} ${
+                      selectedValue === album
+                        ? styles.filter__item_active
+                        : ""
+                    }`}
+                    onClick={() => applyFilter("album", album)}
+                  >
+                    {album}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
 
-            {activeFilter === "genre" &&
-              albums.map((album) => (
-                <span key={album} className={styles.filter__item}>
-                  {album}
-                </span>
-              ))}
-          </div>
-        )}
+        <div className={styles.filter__wrapper}>
+          <button
+            className={`${styles.filter__button} ${
+              activeFilter === "genre" ? styles.filter__button_active : ""
+            }`}
+            onClick={() => toggleFilter("genre")}
+          >
+            жанру
+          </button>
+
+          {activeFilter === "genre" && (
+            <div className={styles.filter__dropdown}>
+              <div className={styles.filter__list}>
+                {genres.map(genre => (
+                  <div
+                    key={genre}
+                    className={`${styles.filter__item} ${
+                      selectedValue === genre
+                        ? styles.filter__item_active
+                        : ""
+                    }`}
+                    onClick={() => applyFilter("genre", genre)}
+                  >
+                    {genre}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className={styles.filter__wrapper}>
+          <button
+            className={`${styles.filter__button} ${
+              activeFilter === "year" ? styles.filter__button_active : ""
+            }`}
+            onClick={() => toggleFilter("year")}
+          >
+            году выпуска
+          </button>
+
+          {activeFilter === "year" && (
+            <div className={styles.filter__dropdown}>
+              <div className={styles.filter__list}>
+                <div
+                  className={`${styles.filter__item} ${
+                    activeSort === "default"
+                      ? styles.filter__item_active
+                      : ""
+                  }`}
+                  onClick={() => applySort("default")}
+                >
+                  по умолчанию
+                </div>
+                <div
+                  className={`${styles.filter__item} ${
+                    activeSort === "old"
+                      ? styles.filter__item_active
+                      : ""
+                  }`}
+                  onClick={() => applySort("old")}
+                >
+                  от старых к новым
+                </div>
+                <div
+                  className={`${styles.filter__item} ${
+                    activeSort === "new"
+                      ? styles.filter__item_active
+                      : ""
+                  }`}
+                  onClick={() => applySort("new")}
+                >
+                  от новых к старым
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
+    
       <div className={styles.centerblock__content}>
-        <div className={styles.content__title}>
-          <div className={`${styles.playlistTitle__col} ${styles.col01}`}>
-            Трек
-          </div>
-          <div className={`${styles.playlistTitle__col} ${styles.col02}`}>
-            Исполнитель
-          </div>
-          <div className={`${styles.playlistTitle__col} ${styles.col03}`}>
-            Альбом
-          </div>
-          <div className={`${styles.playlistTitle__col} ${styles.col04}`}></div>
-        </div>
-
         <div className={styles.content__playlist}>
-          {tracks.map((track) => (
-            <TrackItem key={track.id} track={track} />
+          {filteredTracks.map(track => (
+            <TrackItem
+              key={track._id}
+              track={{
+                id: track._id,
+                title: track.name,
+                author: track.author,
+                album: track.album,
+                duration: track.duration_in_seconds,
+                src: track.track_file,
+              }}
+            />
           ))}
         </div>
       </div>

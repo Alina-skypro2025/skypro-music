@@ -1,15 +1,28 @@
 "use client";
 
-
-
-import Link from 'next/link';
-import Image from 'next/image';
-import styles from './Navigation.module.css';
-import { useState } from "react"; 
+import Link from "next/link";
+import Image from "next/image";
+import styles from "./Navigation.module.css";
+import { useState, useEffect } from "react";
 
 export default function Navigation() {
-    const [isMenuOpen, setIsMenuOpen] = useState(false); 
-  const toggleMenu = () => setIsMenuOpen(prev => !prev); 
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isAuth, setIsAuth] = useState(false);
+
+  const toggleMenu = () => setIsMenuOpen(prev => !prev);
+
+  
+  useEffect(() => {
+    const token = localStorage.getItem("access");
+    setIsAuth(!!token);
+  }, []);
+
+  
+  const handleLogout = () => {
+    localStorage.removeItem("access");
+    setIsAuth(false);
+  };
+
   return (
     <nav className={styles.main__nav}>
       <div className={styles.nav__logo}>
@@ -23,13 +36,13 @@ export default function Navigation() {
         />
       </div>
 
-     <div className={styles.nav__burger} onClick={toggleMenu}>
+      <div className={styles.nav__burger} onClick={toggleMenu}>
         <span className={styles.burger__line}></span>
         <span className={styles.burger__line}></span>
         <span className={styles.burger__line}></span>
       </div>
 
-            <div
+      <div
         className={
           isMenuOpen ? styles.nav__menu_open : styles.nav__menu
         }
@@ -47,14 +60,29 @@ export default function Navigation() {
             </Link>
           </li>
 
-          <li className={styles.menu__item}>
-            <Link href="/login" className={styles.menu__link}>
-              Войти
-            </Link>
-          </li>
+          {!isAuth ? (
+            <li className={styles.menu__item}>
+              <Link href="/login" className={styles.menu__link}>
+                Войти
+              </Link>
+            </li>
+          ) : (
+            <li className={styles.menu__item}>
+              <button
+                onClick={handleLogout}
+                className={styles.menu__link}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                }}
+              >
+                Выйти
+              </button>
+            </li>
+          )}
         </ul>
       </div>
-
     </nav>
   );
 }

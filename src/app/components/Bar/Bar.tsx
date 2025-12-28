@@ -38,6 +38,7 @@ export default function Bar() {
   useEffect(() => {
     if (!audioRef.current || !currentTrack) return;
 
+    // ВАЖНО: у твоих треков поле src
     audioRef.current.src = currentTrack.src;
     audioRef.current.load();
     setCurrentTime(0);
@@ -80,19 +81,17 @@ export default function Bar() {
   };
 
   const handleTimeUpdate = () => {
-    if (audioRef.current)
-      setCurrentTime(audioRef.current.currentTime || 0);
+    if (audioRef.current) setCurrentTime(audioRef.current.currentTime || 0);
   };
 
   const handleLoadedMetadata = () => {
-    if (audioRef.current)
-      setDuration(audioRef.current.duration || 0);
+    if (audioRef.current) setDuration(audioRef.current.duration || 0);
   };
 
   const handleEnded = () => {
     if (isLoop && audioRef.current) {
       audioRef.current.currentTime = 0;
-      audioRef.current.play();
+      audioRef.current.play().catch(() => {});
     } else {
       dispatch(nextTrack());
     }
@@ -114,10 +113,7 @@ export default function Bar() {
     <>
       <div className={styles.bar}>
         <div className={styles.bar__content}>
-          <div
-            className={styles.bar__playerProgress}
-            onClick={handleProgressClick}
-          >
+          <div className={styles.bar__playerProgress} onClick={handleProgressClick}>
             <div
               className={styles.bar__playerProgressFilled}
               style={{ width: `${progressPercent}%` }}
@@ -132,7 +128,6 @@ export default function Bar() {
           <div className={styles.bar__playerBlock}>
             <div className={styles.bar__player}>
               <div className={styles.player__controls}>
-
                 <div onClick={handlePrevClick} className={styles.player__btnPrev}>
                   <Image src="/img/icon/prev.svg" width={15} height={14} alt="prev" />
                 </div>
@@ -166,7 +161,6 @@ export default function Bar() {
                 >
                   <Image src="/img/icon/shuffle.svg" width={19} height={12} alt="shuffle" />
                 </div>
-
               </div>
 
               <div className={styles.player__trackPlay}>
@@ -176,11 +170,15 @@ export default function Bar() {
                   </div>
 
                   <div className={styles.trackPlay__author}>
-                    <span>{currentTrack?.author}</span>
+                    <span className={styles.trackPlay__authorLink}>
+                      {currentTrack?.author}
+                    </span>
                   </div>
 
                   <div className={styles.trackPlay__album}>
-                    <span>{currentTrack?.title}</span>
+                    <span className={styles.trackPlay__albumLink}>
+                      {currentTrack?.title}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -194,19 +192,17 @@ export default function Bar() {
 
                 <div className={styles.volume__progress}>
                   <input
-  type="range"
-  min="0"
-  max="1"
-  step="0.01"
-  value={volume}
-  className={styles.volume__progressLine}
-  onChange={handleVolumeChange}
-/>
-
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    value={volume}
+                    className={styles.volume__progressLine}
+                    onChange={handleVolumeChange}
+                  />
                 </div>
               </div>
             </div>
-
           </div>
         </div>
       </div>

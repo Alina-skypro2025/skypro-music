@@ -11,7 +11,7 @@ const montserrat = Montserrat({
 
 export const metadata: Metadata = {
   title: "Skypro.Music",
-  description: "Учебный музыкальный плеер",
+  description: "Музыкальный сервис",
 };
 
 export default function RootLayout({
@@ -23,8 +23,7 @@ export default function RootLayout({
     <html lang="ru">
       <body className={montserrat.className}>
         <ReduxProvider>
-          {/* Контейнер контента со встроенным отступом под плеер */}
-          <main className="page-content">{children}</main>
+          {children}
         </ReduxProvider>
       </body>
     </html>

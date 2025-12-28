@@ -6,22 +6,18 @@ import { playTrack } from "@/app/store/playerSlice";
 
 export default function TrackItem({ track }: any) {
   const dispatch = useDispatch();
-
   const { currentTrack, isPlaying } = useSelector(
     (state: any) => state.player
   );
 
-  const isCurrent = currentTrack && currentTrack.id === track.id;
-
-  const handleClick = () => {
-    dispatch(playTrack(track));
-  };
+  const isCurrent = currentTrack?.id === track.id;
 
   return (
-    <div className={styles.playlist__item} onClick={handleClick}>
+    <div
+      className={styles.playlist__item}
+      onClick={() => dispatch(playTrack(track))}
+    >
       <div className={styles.playlist__track}>
-
-        {/* Иконка трека + фиолетовая точка + название */}
         <div className={styles.track__iconWrapper}>
           <div className={styles.track__icon}>
             {isCurrent && (
@@ -31,30 +27,13 @@ export default function TrackItem({ track }: any) {
                 }`}
               />
             )}
-
-            <svg className={styles.track__iconSvg}>
-              <use xlinkHref="/img/icon/sprite.svg#icon-note"></use>
-            </svg>
           </div>
-
-          <span className={styles.track__titleLink}>{track.title}</span>
+          <span>{track.title}</span>
         </div>
 
-        {/* Автор */}
-        <div className={styles.track__author}>
-          <span className={styles.track__authorLink}>{track.author}</span>
-        </div>
-
-        {/* Альбом */}
-        <div className={styles.track__album}>
-          <span className={styles.track__albumLink}>{track.album}</span>
-        </div>
-
-        {/* Время */}
-        <div className={styles.track__time}>
-          <span className={styles.track__timeText}>{track.duration}</span>
-        </div>
-
+        <span>{track.author}</span>
+        <span>{track.album}</span>
+        <span>{track.duration}</span>
       </div>
     </div>
   );

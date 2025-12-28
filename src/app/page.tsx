@@ -1,24 +1,50 @@
-import styles from "./page.module.css";
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+
 import Navigation from "./components/Navigation/Navigation";
-import Centerblock from "./components/Centerblock/Centerblock";
 import Sidebar from "./components/Sidebar/Sidebar";
+import Centerblock from "./components/Centerblock/Centerblock";
 import Bar from "./components/Bar/Bar";
 
-export default function Home() {
+import styles from "./page.module.css";
+
+export default function Page() {
+  const router = useRouter();
+
+  useEffect(() => {
+    const accessToken = localStorage.getItem("access");
+    if (!accessToken) {
+      router.replace("/login");
+    }
+  }, [router]);
+
   return (
     <div className={styles.page}>
       
-      {/* Хедер во всю ширину */}
       <Navigation />
 
-      {/* Контентная область по центру */}
-      <div className={styles.page__content}>
-        <Centerblock />
-        <Sidebar />
+     
+      <div className={styles.main}>
+        
+        <div />
+
+        
+        <main className={styles.center}>
+          <Centerblock />
+        </main>
+
+        
+        <aside className={styles.right}>
+          <Sidebar />
+        </aside>
       </div>
 
-      {/* Плеер снизу */}
-      <Bar />
+     
+      <div className={styles.player}>
+        <Bar />
+      </div>
     </div>
   );
 }
