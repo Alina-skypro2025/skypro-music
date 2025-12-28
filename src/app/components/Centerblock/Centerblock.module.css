@@ -1,6 +1,6 @@
 .centerblock {
-  flex-grow: 3;
-  padding: 20px 40px 20px 111px;
+
+  width: 100%;
 }
 
 .centerblock__search {
@@ -83,9 +83,7 @@
 
 .content__title {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  margin-bottom: 24px;
 }
 
 .playlistTitle__col {
@@ -105,21 +103,12 @@
   stroke: #696969;
 }
 
-.col01 {
-  width: 447px;
-}
-
-.col02 {
-  width: 321px;
-}
-
-.col03 {
-  width: 245px;
-}
-
+.col01 { flex: 3; }
+.col02 { flex: 2; }
+.col03 { flex: 2; }
 .col04 {
-  width: 60px;
-  text-align: end;
+    width: 60px;
+    text-align: end;
 }
 
 .content__playlist {

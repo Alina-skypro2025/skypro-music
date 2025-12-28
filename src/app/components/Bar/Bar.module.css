@@ -1,9 +1,16 @@
 .bar {
-  position: absolute;
+  position: fixed;
   bottom: 0;
   left: 0;
   width: 100%;
-  background: rgba(28, 28, 28, 0.5);
+
+  background: #181818;
+  border-top: 1px solid #2b2b2b;
+
+
+  min-height: 90px;
+
+  z-index: 9999;
 }
 
 .bar__content {

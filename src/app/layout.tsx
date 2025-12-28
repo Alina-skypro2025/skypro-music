@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Montserrat } from "next/font/google";
 import "./globals.css";
 import { ReduxProvider } from "./Providers";
 
-const inter = Inter({ subsets: ["latin"] });
+const montserrat = Montserrat({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Skypro.Music",
@@ -17,8 +21,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ru">
-      <body className={inter.className}>
-        <ReduxProvider>{children}</ReduxProvider>
+      <body className={montserrat.className}>
+        <ReduxProvider>
+          {/* Контейнер контента со встроенным отступом под плеер */}
+          <main className="page-content">{children}</main>
+        </ReduxProvider>
       </body>
     </html>
   );

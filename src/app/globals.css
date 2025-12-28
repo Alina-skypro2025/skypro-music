@@ -11,3 +11,12 @@ html, body {
   background-color: #181818;
   color: #fff;
 }
+
+.main-layout {
+  padding-bottom: 110px; 
+}
+
+.page-content {
+  padding-bottom: 150px; 
+}
+
