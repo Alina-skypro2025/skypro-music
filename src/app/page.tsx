@@ -1,49 +1,46 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import Navigation from "./components/Navigation/Navigation";
 import Sidebar from "./components/Sidebar/Sidebar";
 import Centerblock from "./components/Centerblock/Centerblock";
-import Bar from "./components/Bar/Bar";
 
 import styles from "./page.module.css";
 
 export default function Page() {
   const router = useRouter();
+  const [checked, setChecked] = useState(false);
 
   useEffect(() => {
-    const accessToken = localStorage.getItem("access");
+    const accessToken = localStorage.getItem("skypro_access");
     if (!accessToken) {
       router.replace("/login");
+      return;
     }
+    setChecked(true);
   }, [router]);
+
+  if (!checked) return null;
 
   return (
     <div className={styles.page}>
-      
-      <Navigation />
-
-     
       <div className={styles.main}>
         
-        <div />
+        <aside className={styles.left}>
+          <Navigation />
+        </aside>
 
         
         <main className={styles.center}>
           <Centerblock />
         </main>
 
-        
+       
         <aside className={styles.right}>
           <Sidebar />
         </aside>
-      </div>
-
-     
-      <div className={styles.player}>
-        <Bar />
       </div>
     </div>
   );

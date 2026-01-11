@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { getTracksByPlaylist } from "@/app/api/tracks";
 import { Track } from "@/app/types/track";
@@ -10,13 +10,20 @@ import styles from "@/app/components/Centerblock/Centerblock.module.css";
 
 export default function PlaylistPage() {
   const params = useParams();
-  const playlistId = Number(params.id);
+
+  const playlistId = useMemo(() => {
+    const raw = params?.id;
+    const idStr = Array.isArray(raw) ? raw[0] : raw;
+    return Number(idStr);
+  }, [params]);
 
   const [tracks, setTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
+    if (!Number.isFinite(playlistId) || playlistId <= 0) return;
+
     async function loadPlaylist() {
       try {
         const data = await getTracksByPlaylist(playlistId);
@@ -40,7 +47,7 @@ export default function PlaylistPage() {
 
       <div className={styles.centerblock__content}>
         <div className={styles.content__playlist}>
-          {tracks.map(track => (
+          {tracks.map((track) => (
             <TrackItem
               key={track._id}
               track={{

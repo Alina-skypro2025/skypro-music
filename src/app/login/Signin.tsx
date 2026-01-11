@@ -4,7 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import styles from "./signin.module.css";
-import { apiGetTokens, apiLogin, saveTokens } from "@/app/api";
+
+import { loginUser, saveAuthToStorage } from "@/app/api/authApi";
 
 export default function Signin() {
   const router = useRouter();
@@ -18,7 +19,10 @@ export default function Signin() {
     e.preventDefault();
     setErrorText("");
 
-    if (!email.trim() || !password.trim()) {
+    const cleanEmail = email.trim();
+    const cleanPassword = password.trim();
+
+    if (!cleanEmail || !cleanPassword) {
       setErrorText("Заполни почту и пароль");
       return;
     }
@@ -26,15 +30,11 @@ export default function Signin() {
     try {
       setIsLoading(true);
 
-      
-      await apiLogin(email.trim(), password);
+      const { user, tokens } = await loginUser(cleanEmail, cleanPassword);
+      saveAuthToStorage(user, tokens);
 
       
-      const tokens = await apiGetTokens(email.trim(), password);
-      saveTokens(tokens);
-
-     
-      router.push("/");
+      router.replace("/");
     } catch (err: any) {
       setErrorText(err?.message || "Ошибка входа");
     } finally {

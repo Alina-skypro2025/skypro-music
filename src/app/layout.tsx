@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Montserrat } from "next/font/google";
 import "./globals.css";
 import { ReduxProvider } from "./Providers";
+import ClientShell from "./ClientShell";
 
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -14,16 +15,12 @@ export const metadata: Metadata = {
   description: "Музыкальный сервис",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ru">
       <body className={montserrat.className}>
         <ReduxProvider>
-          {children}
+          <ClientShell>{children}</ClientShell>
         </ReduxProvider>
       </body>
     </html>
