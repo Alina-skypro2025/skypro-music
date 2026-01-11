@@ -1,30 +1,20 @@
 "use client";
 
+import { ReactNode, useMemo } from "react";
 import { usePathname } from "next/navigation";
-import { useMemo } from "react";
 import Bar from "./components/Bar/Bar";
 
-export default function ClientShell({ children }: { children: React.ReactNode }) {
+export default function ClientShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
-  
-  const hasAccessToken = useMemo(() => {
-    if (typeof window === "undefined") return false;
-    return Boolean(localStorage.getItem("skypro_access"));
-  }, []);
-
-  const isAuthPage =
-    pathname === "/login" ||
-    pathname === "/register" ||
-    pathname?.startsWith("/login") ||
-    pathname?.startsWith("/register");
-
-  const shouldShowPlayer = !isAuthPage && hasAccessToken;
+  const hideBar = useMemo(() => {
+    return pathname === "/login" || pathname === "/register";
+  }, [pathname]);
 
   return (
     <>
       {children}
-      {shouldShowPlayer ? <Bar /> : null}
+      {!hideBar && <Bar />}
     </>
   );
 }

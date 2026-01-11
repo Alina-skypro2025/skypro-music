@@ -6,11 +6,17 @@ import { playTrack } from "@/app/store/playerSlice";
 
 export default function TrackItem({ track }: any) {
   const dispatch = useDispatch();
-  const { currentTrack, isPlaying } = useSelector(
-    (state: any) => state.player
-  );
+  const { currentTrack, isPlaying } = useSelector((state: any) => state.player);
 
-  const isCurrent = currentTrack?.id === track.id;
+  const currentId = currentTrack?.id ?? currentTrack?._id;
+  const trackId = track?.id ?? track?._id;
+
+  const isCurrent =
+    currentId !== undefined &&
+    currentId !== null &&
+    trackId !== undefined &&
+    trackId !== null &&
+    String(currentId) === String(trackId);
 
   return (
     <div
@@ -28,6 +34,7 @@ export default function TrackItem({ track }: any) {
               />
             )}
           </div>
+
           <span>{track.title}</span>
         </div>
 

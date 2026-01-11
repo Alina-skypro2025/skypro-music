@@ -1,66 +1,88 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
-import { getTracksByPlaylist } from "@/app/api/tracks";
-import { Track } from "@/app/types/track";
-import TrackItem from "@/app/components/TrackItem/TrackItem";
-import Loader from "@/app/components/Loader/Loader";
-import styles from "@/app/components/Centerblock/Centerblock.module.css";
+import { useParams, useRouter } from "next/navigation";
+
+import Navigation from "@/app/components/Navigation/Navigation";
+import Sidebar from "@/app/components/Sidebar/Sidebar";
+import Centerblock from "@/app/components/Centerblock/Centerblock";
+
+import styles from "@/app/page.module.css";
 
 export default function PlaylistPage() {
+  const router = useRouter();
   const params = useParams();
 
+  const [checked, setChecked] = useState(false);
+
   const playlistId = useMemo(() => {
-    const raw = params?.id;
-    const idStr = Array.isArray(raw) ? raw[0] : raw;
-    return Number(idStr);
+    const raw = (params as any)?.id;
+    const value = Array.isArray(raw) ? raw[0] : raw;
+    const id = Number(value);
+    return Number.isFinite(id) ? id : null;
   }, [params]);
 
-  const [tracks, setTracks] = useState<Track[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
+  
   useEffect(() => {
-    if (!Number.isFinite(playlistId) || playlistId <= 0) return;
+    const token =
+      localStorage.getItem("skypro_access") ||
+      localStorage.getItem("access") ||
+      localStorage.getItem("token");
 
-    async function loadPlaylist() {
-      try {
-        const data = await getTracksByPlaylist(playlistId);
-        setTracks(data);
-      } catch {
-        setError("Не удалось загрузить подборку");
-      } finally {
-        setLoading(false);
-      }
+    if (!token) {
+      router.replace("/login");
+      return;
     }
 
-    loadPlaylist();
-  }, [playlistId]);
+    setChecked(true);
+  }, [router]);
 
-  if (loading) return <Loader />;
-  if (error) return <div className={styles.error}>{error}</div>;
+  
+  useEffect(() => {
+    if (!checked) return;
+    if (playlistId === null) return; 
+
+    if (playlistId <= 0) {
+      router.replace("/");
+    }
+  }, [checked, playlistId, router]);
+
+  
+  if (!checked) return null;
+
+  
+  if (playlistId === null) {
+    return (
+      <div className={styles.page}>
+        <div className={styles.main}>
+          <aside className={styles.left}>
+            <Navigation />
+          </aside>
+
+          <main className={styles.center} />
+
+          <aside className={styles.right}>
+            <Sidebar />
+          </aside>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className={styles.centerblock}>
-      <h2 className={styles.centerblock__h2}>Подборка</h2>
+    <div className={styles.page}>
+      <div className={styles.main}>
+        <aside className={styles.left}>
+          <Navigation />
+        </aside>
 
-      <div className={styles.centerblock__content}>
-        <div className={styles.content__playlist}>
-          {tracks.map((track) => (
-            <TrackItem
-              key={track._id}
-              track={{
-                id: track._id,
-                title: track.name,
-                author: track.author,
-                album: track.album,
-                duration: track.duration_in_seconds,
-                src: track.track_file,
-              }}
-            />
-          ))}
-        </div>
+        <main className={styles.center}>
+          <Centerblock playlistId={playlistId} />
+        </main>
+
+        <aside className={styles.right}>
+          <Sidebar />
+        </aside>
       </div>
     </div>
   );
