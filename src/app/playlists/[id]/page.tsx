@@ -22,7 +22,6 @@ export default function PlaylistPage() {
     return Number.isFinite(id) ? id : null;
   }, [params]);
 
-  
   useEffect(() => {
     const token =
       localStorage.getItem("skypro_access") ||
@@ -37,20 +36,15 @@ export default function PlaylistPage() {
     setChecked(true);
   }, [router]);
 
-  
   useEffect(() => {
     if (!checked) return;
-    if (playlistId === null) return; 
+    if (playlistId === null) return;
 
-    if (playlistId <= 0) {
-      router.replace("/");
-    }
+    if (playlistId <= 0) router.replace("/");
   }, [checked, playlistId, router]);
 
-  
   if (!checked) return null;
 
-  
   if (playlistId === null) {
     return (
       <div className={styles.page}>
@@ -58,9 +52,7 @@ export default function PlaylistPage() {
           <aside className={styles.left}>
             <Navigation />
           </aside>
-
           <main className={styles.center} />
-
           <aside className={styles.right}>
             <Sidebar />
           </aside>

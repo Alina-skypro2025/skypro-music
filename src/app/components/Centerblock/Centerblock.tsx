@@ -4,113 +4,172 @@ import styles from "./Centerblock.module.css";
 import { useEffect, useMemo, useState } from "react";
 import TrackItem from "@/app/components/TrackItem/TrackItem";
 import Loader from "@/app/components/Loader/Loader";
-import { tracks as myTracksRaw } from "@/app/data/tracks";
+import { getAllTracks, getTracksByPlaylist } from "@/app/api/tracks";
+import { Track } from "@/app/types/track";
+import { useDispatch } from "react-redux";
+import { setPlaylist } from "@/app/store/playerSlice";
 
 type DropdownType = "author" | "album" | "genre" | "year" | null;
 type SortType = "default" | "old" | "new";
 
-type LocalTrack = {
-  _id: number;
-  name: string;
+type UiTrack = {
+  id: number;
+  title: string;
   author: string;
   album: string;
-  duration_in_seconds: number;
-  track_file: string;
+  duration: number;
+  src: string;
   genre?: string[];
   release_date?: number;
 };
 
-type Props = {
-  playlistId?: number;
+const playlistTitles: Record<number, string> = {
+  1: "Плейлист дня",
+  2: "100 танцевальных хитов",
+  3: "Инди заряд",
 };
 
+const PLAYLIST_MIN = 5;
+const PLAYLIST_MAX = 8;
 
-const playlistMeta: Record<number, { title: string; ids: number[] }> = {
-  1: { title: "Плейлист дня", ids: [1] },
-  2: { title: "100 танцевальных хитов", ids: [2] },
-  3: { title: "Инди заряд", ids: [3] },
-};
-
-
-function normalizeTracks(raw: any[]): LocalTrack[] {
-  return (raw ?? [])
-    .map((t: any) => {
-      const id = Number(t._id ?? t.id);
-      return {
-        _id: Number.isFinite(id) ? id : Math.random(),
-        name: String(t.name ?? t.title ?? ""),
-        author: String(t.author ?? ""),
-        album: String(t.album ?? ""),
-        duration_in_seconds: Number(t.duration_in_seconds ?? t.duration ?? 0),
-        track_file: String(t.track_file ?? t.src ?? ""),
-        genre: Array.isArray(t.genre) ? t.genre : undefined,
-        release_date: typeof t.release_date === "number" ? t.release_date : undefined,
-      };
-    })
-    .filter((t) => t.name && t.author && t.track_file);
+function stableStringHashToNumber(str: string) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash * 31 + str.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash);
 }
 
-export default function Centerblock({ playlistId }: Props) {
-  const [allTracks, setAllTracks] = useState<LocalTrack[]>([]);
-  const [tracks, setTracks] = useState<LocalTrack[]>([]);
-  const [filteredTracks, setFilteredTracks] = useState<LocalTrack[]>([]);
+function toNumberId(raw: any): number {
+  if (typeof raw === "number" && Number.isFinite(raw)) return raw;
+  const n = Number(raw);
+  if (Number.isFinite(n)) return n;
+  if (typeof raw === "string" && raw) return stableStringHashToNumber(raw);
+  return 0;
+}
+
+function mapApiTrackToUi(t: Track): UiTrack {
+  const rawId: any = (t as any).id ?? (t as any)._id;
+
+  return {
+    id: toNumberId(rawId),
+    title: (t as any).title ?? (t as any).name ?? "",
+    author: (t as any).author ?? "",
+    album: (t as any).album ?? "",
+    duration: (t as any).duration ?? (t as any).duration_in_seconds ?? 0,
+    src: (t as any).src ?? (t as any).track_file ?? "",
+    genre: (t as any).genre ?? [],
+    release_date: (t as any).release_date,
+  };
+}
+
+
+function buildFallbackPlaylist(all: UiTrack[], playlistId: number) {
+  const list = all.filter((t) => t.id && t.src);
+
+  
+  if (list.length < PLAYLIST_MAX * 3) {
+    const byMod = list.filter((t) => (t.id % 3) === ((playlistId - 1) % 3));
+    const base = byMod.length >= PLAYLIST_MIN ? byMod : list;
+    return base.slice(0, Math.min(PLAYLIST_MAX, base.length));
+  }
+
+  
+  const chunkSize = PLAYLIST_MAX;
+  const start = (playlistId - 1) * chunkSize;
+  const chunk = list.slice(start, start + chunkSize);
+
+  if (chunk.length === 0) return list.slice(0, chunkSize);
+  return chunk;
+}
+
+export default function Centerblock({ playlistId }: { playlistId?: number }) {
+  const dispatch = useDispatch();
+
+  const [tracks, setTracks] = useState<UiTrack[]>([]);
+  const [filteredTracks, setFilteredTracks] = useState<UiTrack[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
- 
   const [openDropdown, setOpenDropdown] = useState<DropdownType>(null);
 
-  
   const [selectedAuthor, setSelectedAuthor] = useState<string | null>(null);
   const [selectedAlbum, setSelectedAlbum] = useState<string | null>(null);
   const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
 
-  
   const [activeSort, setActiveSort] = useState<SortType>("default");
-
-  
   const [searchQuery, setSearchQuery] = useState("");
 
- 
-  useEffect(() => {
-    try {
-      const normalized = normalizeTracks(myTracksRaw as any[]);
-      setAllTracks(normalized);
-    } catch {
-      setError("Не удалось загрузить треки");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  
   const pageTitle = useMemo(() => {
     if (!playlistId) return "Треки";
-    return playlistMeta[playlistId]?.title ?? "Подборка";
+    return playlistTitles[playlistId] ?? "Подборка";
   }, [playlistId]);
 
   useEffect(() => {
-    if (loading) return;
+    let cancelled = false;
 
-    
-    let base = allTracks;
+    async function load() {
+      try {
+        setLoading(true);
+        setError("");
 
-    if (playlistId) {
-      const ids = playlistMeta[playlistId]?.ids ?? [];
-      base = allTracks.filter((t) => ids.includes(t._id));
+        
+        if (playlistId) {
+          
+          const data = (await getTracksByPlaylist(playlistId)) ?? [];
+          const uiFromPlaylist = (data ?? [])
+            .map(mapApiTrackToUi)
+            .filter((t) => t.id && t.src);
+
+          
+          if (uiFromPlaylist.length > 0) {
+            if (!cancelled) {
+              setTracks(uiFromPlaylist);
+              setFilteredTracks(uiFromPlaylist);
+              dispatch(setPlaylist(uiFromPlaylist));
+            }
+            return;
+          }
+
+          
+          const all = (await getAllTracks()) ?? [];
+          const allUi = (all ?? [])
+            .map(mapApiTrackToUi)
+            .filter((t) => t.id && t.src);
+
+          const fallback = buildFallbackPlaylist(allUi, playlistId);
+
+          if (!cancelled) {
+            setTracks(fallback);
+            setFilteredTracks(fallback);
+            dispatch(setPlaylist(fallback));
+          }
+          return;
+        }
+
+        
+        const all = (await getAllTracks()) ?? [];
+        const ui = (all ?? [])
+          .map(mapApiTrackToUi)
+          .filter((t) => t.id && t.src);
+
+        if (!cancelled) {
+          setTracks(ui);
+          setFilteredTracks(ui);
+          dispatch(setPlaylist(ui));
+        }
+      } catch {
+        if (!cancelled) setError("Не удалось загрузить треки");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     }
 
-    setTracks(base);
-    setFilteredTracks(base);
-
-    
-    setOpenDropdown(null);
-    setSelectedAuthor(null);
-    setSelectedAlbum(null);
-    setSelectedGenre(null);
-    setActiveSort("default");
-    setSearchQuery("");
-  }, [playlistId, allTracks, loading]);
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [playlistId, dispatch]);
 
   const authors = useMemo(
     () => Array.from(new Set(tracks.map((t) => t.author))).filter(Boolean),
@@ -128,7 +187,7 @@ export default function Centerblock({ playlistId }: Props) {
   }, [tracks]);
 
   const applyAll = (
-    base: LocalTrack[],
+    base: UiTrack[],
     author: string | null,
     album: string | null,
     genre: string | null,
@@ -137,23 +196,20 @@ export default function Centerblock({ playlistId }: Props) {
   ) => {
     let result = [...base];
 
-    
     if (author) result = result.filter((t) => t.author === author);
     if (album) result = result.filter((t) => t.album === album);
     if (genre) result = result.filter((t) => (t.genre ?? []).includes(genre));
 
-    
     const q = query.trim().toLowerCase();
     if (q) {
       result = result.filter((t) => {
-        const name = (t.name ?? "").toLowerCase();
+        const name = (t.title ?? "").toLowerCase();
         const a = (t.author ?? "").toLowerCase();
         const al = (t.album ?? "").toLowerCase();
         return name.includes(q) || a.includes(q) || al.includes(q);
       });
     }
 
-  
     if (sort === "old") {
       result.sort((a, b) => (a.release_date ?? 0) - (b.release_date ?? 0));
     }
@@ -175,31 +231,27 @@ export default function Centerblock({ playlistId }: Props) {
     setActiveSort("default");
     setSearchQuery("");
     setOpenDropdown(null);
-    setFilteredTracks(tracks); 
+    setFilteredTracks(tracks);
   };
 
   const onSelectAuthor = (val: string) => {
     setSelectedAuthor(val);
     applyAll(tracks, val, selectedAlbum, selectedGenre, activeSort, searchQuery);
-    setOpenDropdown(null);
   };
 
   const onSelectAlbum = (val: string) => {
     setSelectedAlbum(val);
     applyAll(tracks, selectedAuthor, val, selectedGenre, activeSort, searchQuery);
-    setOpenDropdown(null);
   };
 
   const onSelectGenre = (val: string) => {
     setSelectedGenre(val);
     applyAll(tracks, selectedAuthor, selectedAlbum, val, activeSort, searchQuery);
-    setOpenDropdown(null);
   };
 
   const onSelectSort = (val: SortType) => {
     setActiveSort(val);
     applyAll(tracks, selectedAuthor, selectedAlbum, selectedGenre, val, searchQuery);
-    setOpenDropdown(null);
   };
 
   const onSearch = (val: string) => {
@@ -371,19 +423,25 @@ export default function Centerblock({ playlistId }: Props) {
 
       <div className={styles.centerblock__content}>
         <div className={styles.content__playlist}>
-          {filteredTracks.map((t) => (
-            <TrackItem
-              key={t._id}
-              track={{
-                id: t._id,
-                title: t.name,
-                author: t.author,
-                album: t.album,
-                duration: t.duration_in_seconds,
-                src: t.track_file,
-              }}
-            />
-          ))}
+          {filteredTracks.length === 0 ? (
+            <div style={{ color: "#b1b1b1", paddingTop: 24 }}>
+              В подборке пока нет треков
+            </div>
+          ) : (
+            filteredTracks.map((t) => (
+              <TrackItem
+                key={t.id}
+                track={{
+                  id: t.id,
+                  title: t.title,
+                  author: t.author,
+                  album: t.album,
+                  duration: t.duration,
+                  src: t.src,
+                }}
+              />
+            ))
+          )}
         </div>
       </div>
     </div>

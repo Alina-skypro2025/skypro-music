@@ -20,6 +20,14 @@ function formatTime(seconds: number) {
   return `${m}:${s < 10 ? "0" + s : s}`;
 }
 
+function normalizeSrc(raw: any): string {
+  const s = String(raw ?? "").trim();
+  if (!s) return "";
+  if (s.startsWith("http://") || s.startsWith("https://")) return s;
+  if (s.startsWith("/")) return s;
+  return `/${s}`;
+}
+
 export default function Bar() {
   const dispatch = useDispatch();
   const { currentTrack, isPlaying, volume, isShuffle, isLoop } = useSelector(
@@ -37,12 +45,16 @@ export default function Bar() {
   useEffect(() => {
     if (!audioRef.current || !currentTrack) return;
 
-    audioRef.current.src = currentTrack.src || currentTrack.track_file;
+    const src = normalizeSrc(currentTrack.src || currentTrack.track_file);
+
+    if (!src) return;
+
+    audioRef.current.src = src;
     audioRef.current.load();
     setCurrentTime(0);
 
     if (isPlaying) audioRef.current.play().catch(() => {});
-  }, [currentTrack, isPlaying]);
+  }, [currentTrack]);
 
   useEffect(() => {
     if (!audioRef.current) return;
@@ -62,7 +74,6 @@ export default function Bar() {
     <>
       <div className={styles.bar}>
         <div className={styles.bar__content}>
-        
           <div
             className={styles.bar__playerProgress}
             onClick={handleProgressClick}
@@ -75,13 +86,11 @@ export default function Bar() {
             />
           </div>
 
-         
           <div className={styles.bar__time}>
             <span>{formatTime(currentTime)}</span>
             <span>{formatTime(duration)}</span>
           </div>
 
-          
           <div className={styles.bar__playerBlock}>
             <div className={styles.bar__player}>
               <div className={styles.player__controls}>
@@ -116,7 +125,9 @@ export default function Bar() {
 
                 <button
                   type="button"
-                  className={`${styles.iconBtn} ${isLoop ? styles.player__btnRepeat_active : ""}`}
+                  className={`${styles.iconBtn} ${
+                    isLoop ? styles.player__btnRepeat_active : ""
+                  }`}
                   onClick={() => dispatch(toggleLoop())}
                 >
                   <Image src="/img/icon/repeat.svg" width={18} height={12} alt="repeat" />
@@ -124,7 +135,9 @@ export default function Bar() {
 
                 <button
                   type="button"
-                  className={`${styles.iconBtn} ${isShuffle ? styles.player__btnShuffle_active : ""}`}
+                  className={`${styles.iconBtn} ${
+                    isShuffle ? styles.player__btnShuffle_active : ""
+                  }`}
                   onClick={() => dispatch(toggleShuffle())}
                 >
                   <Image src="/img/icon/shuffle.svg" width={19} height={12} alt="shuffle" />
@@ -134,17 +147,12 @@ export default function Bar() {
               <div className={styles.player__trackPlay}>
                 <div className={styles.trackPlay__image} />
                 <div>
-                  <div className={styles.trackPlay__author}>
-                    {currentTrack?.author}
-                  </div>
-                  <div className={styles.trackPlay__album}>
-                    {currentTrack?.title}
-                  </div>
+                  <div className={styles.trackPlay__author}>{currentTrack?.author}</div>
+                  <div className={styles.trackPlay__album}>{currentTrack?.title}</div>
                 </div>
               </div>
             </div>
 
-            
             <div className={styles.bar__volumeBlock}>
               <div className={styles.volume__content}>
                 <Image
