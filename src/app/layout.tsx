@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Montserrat } from "next/font/google";
 import "./globals.css";
 import { ReduxProvider } from "./Providers";
+import ClientShell from "./ClientShell";
 
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -11,20 +12,15 @@ const montserrat = Montserrat({
 
 export const metadata: Metadata = {
   title: "Skypro.Music",
-  description: "Учебный музыкальный плеер",
+  description: "Музыкальный сервис",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ru">
       <body className={montserrat.className}>
         <ReduxProvider>
-          {/* Контейнер контента со встроенным отступом под плеер */}
-          <main className="page-content">{children}</main>
+          <ClientShell>{children}</ClientShell>
         </ReduxProvider>
       </body>
     </html>

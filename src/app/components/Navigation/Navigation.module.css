@@ -1,35 +1,47 @@
 .main__nav {
- width: 100%;
-  height: 60px;
-  padding: 0 32px;
+  width: 100%;
 
+ 
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: flex-start;
 
-  position: fixed; 
-  top: 0;
-  left: 0;
-  z-index: 10;
+ 
+  padding-top: 30px;
 
-  background: #181818;
+  position: relative;
+  z-index: 5;
+
+  background-color: transparent;
 }
+
 
 .nav__logo {
-  width: 113.33px;
-  height: 43px;
-  padding: 13px 0;
-  background-color: transparent;
-  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
 }
 
+.logo__image {
+  width: 113px;
+  height: 17px;
+}
+
+
 .nav__burger {
+  margin-top: 28px;
+
   width: 20px;
-  height: 36px;
-  padding: 13px 0;
+  height: 14px;
+
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+
+  cursor: pointer;
+
+  background: transparent;
+  border: none;
+  padding: 0;
 }
 
 .burger__line {
@@ -38,48 +50,57 @@
   background-color: #d3d3d3;
 }
 
+
 .nav__menu {
-   max-height: 0;
-  overflow: hidden;
+  margin-top: 18px;
+
+  max-height: 0;
   opacity: 0;
-  visibility: hidden;
+  overflow: hidden;
+
   transition: all 0.3s ease;
 }
 
+.nav__menu_open {
+  margin-top: 18px;
+
+  max-height: 300px;
+  opacity: 1;
+}
+
+
 .menu__list {
-  padding: 18px 0 10px 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
 .menu__item {
-  padding: 5px 0;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
+}
+
+.menu__item:last-child {
+  margin-bottom: 0;
 }
 
 .menu__link {
   color: #ffffff;
-  font-weight: 400;
   font-size: 16px;
-  line-height: 24px;
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
 }
 
-.logo__image {
-  width: 113.33px;
-  height: 17px;
-  color: #181818;
-}
-.menu__list {
-  list-style: none; 
+
+.menu__linkButton {
+  color: #ffffff;
+  font-size: 16px;
+  text-decoration: none;
+
+  background: none;
+  border: none;
   padding: 0;
-  margin: 0;
-}
 
-.menu__item a {
-  text-decoration: none; 
-  color: #fff; 
-}
-.nav__menu_open {
-  max-height: 300px; 
-  opacity: 1;
-  visibility: visible;
-  transition: all 0.3s ease;
+  cursor: pointer;
 }
