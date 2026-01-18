@@ -3,30 +3,41 @@
 import Link from "next/link";
 import Image from "next/image";
 import styles from "./Navigation.module.css";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, useCallback } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { clearAuthStorage } from "@/app/api/authApi";
+import { useDispatch } from "react-redux";
+import { clearFavoritesLocal } from "@/app/store/favoritesSlice";
 
 export default function Navigation() {
   const router = useRouter();
+  const pathname = usePathname();
+  const dispatch = useDispatch();
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAuth, setIsAuth] = useState(false);
 
-  const toggleMenu = () => setIsMenuOpen((prev) => !prev);
+  const toggleMenu = useCallback(() => setIsMenuOpen((prev) => !prev), []);
 
   useEffect(() => {
-  
     const token = localStorage.getItem("skypro_access");
     setIsAuth(Boolean(token));
   }, []);
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     clearAuthStorage();
+    dispatch(clearFavoritesLocal());
     setIsAuth(false);
     setIsMenuOpen(false);
-    router.replace("/login");
-  };
+
+    
+    if (pathname === "/favorites") {
+      router.replace("/");
+      return;
+    }
+
+    router.replace("/");
+  }, [dispatch, pathname, router]);
 
   return (
     <nav className={styles.main__nav}>
@@ -61,10 +72,10 @@ export default function Navigation() {
             </Link>
           </li>
 
+          
           <li className={styles.menu__item}>
-           
             <Link
-              href="/playlists/1"
+              href="/favorites"
               className={styles.menu__link}
               onClick={() => setIsMenuOpen(false)}
             >
@@ -74,7 +85,11 @@ export default function Navigation() {
 
           {!isAuth ? (
             <li className={styles.menu__item}>
-              <Link href="/login" className={styles.menu__link} onClick={() => setIsMenuOpen(false)}>
+              <Link
+                href="/login"
+                className={styles.menu__link}
+                onClick={() => setIsMenuOpen(false)}
+              >
                 Войти
               </Link>
             </li>

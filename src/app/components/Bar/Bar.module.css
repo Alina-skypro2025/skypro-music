@@ -171,3 +171,88 @@
   border-radius: 50%;
   border: none;
 }
+.trackPlay__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.likeBtn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 18px;
+  transition: transform 0.12s ease;
+}
+
+.likeBtn:hover {
+  transform: scale(1.08);
+}
+
+.likeBtn_active {
+  animation: likePop 0.18s ease;
+}
+
+@keyframes likePop {
+  0% { transform: scale(1); }
+  60% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+.bar__error {
+  color: #ff5a5a;
+  font-size: 12px;
+  padding: 6px 16px 0;
+}
+.trackPlay__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.trackPlay__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.likeBtn {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+
+.likeBtn:hover {
+  transform: scale(1.08);
+}
+
+.likeBtn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.likeBtn_active {
+  animation: pop 0.18s ease;
+}
+
+@keyframes pop {
+  0% { transform: scale(0.9); }
+  100% { transform: scale(1.08); }
+}
+
+.likeError {
+  color: #ff4d4f;
+  font-size: 12px;
+  padding: 6px 16px 0;
+}
