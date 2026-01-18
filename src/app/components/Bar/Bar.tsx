@@ -20,6 +20,14 @@ function formatTime(seconds: number) {
   return `${m}:${s < 10 ? "0" + s : s}`;
 }
 
+function normalizeSrc(raw: any): string {
+  const s = String(raw ?? "").trim();
+  if (!s) return "";
+  if (s.startsWith("http://") || s.startsWith("https://")) return s;
+  if (s.startsWith("/")) return s;
+  return `/${s}`;
+}
+
 export default function Bar() {
   const dispatch = useDispatch();
   const { currentTrack, isPlaying, volume, isShuffle, isLoop } = useSelector(
@@ -27,7 +35,6 @@ export default function Bar() {
   );
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
-
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
 
@@ -38,7 +45,11 @@ export default function Bar() {
   useEffect(() => {
     if (!audioRef.current || !currentTrack) return;
 
-    audioRef.current.src = currentTrack.src;
+    const src = normalizeSrc(currentTrack.src || currentTrack.track_file);
+
+    if (!src) return;
+
+    audioRef.current.src = src;
     audioRef.current.load();
     setCurrentTime(0);
 
@@ -47,68 +58,17 @@ export default function Bar() {
 
   useEffect(() => {
     if (!audioRef.current) return;
-    if (isPlaying) audioRef.current.play().catch(() => {});
-    else audioRef.current.pause();
+    isPlaying
+      ? audioRef.current.play().catch(() => {})
+      : audioRef.current.pause();
   }, [isPlaying]);
-
-  const handleTogglePlay = () => {
-    if (currentTrack) dispatch(togglePlay());
-  };
-
-  const handlePrevClick = (e: MouseEvent) => {
-    e.stopPropagation();
-    dispatch(prevTrack());
-  };
-
-  const handleNextClick = (e: MouseEvent) => {
-    e.stopPropagation();
-    dispatch(nextTrack());
-  };
-
-  const handleShuffleClick = (e: MouseEvent) => {
-    e.stopPropagation();
-    dispatch(toggleShuffle());
-  };
-
-  const handleLoopClick = (e: MouseEvent) => {
-    e.stopPropagation();
-    dispatch(toggleLoop());
-  };
-
-  const handleVolumeChange = (e: any) => {
-    dispatch(setVolume(Number(e.target.value)));
-  };
-
-  const handleTimeUpdate = () => {
-    if (audioRef.current)
-      setCurrentTime(audioRef.current.currentTime || 0);
-  };
-
-  const handleLoadedMetadata = () => {
-    if (audioRef.current)
-      setDuration(audioRef.current.duration || 0);
-  };
-
-  const handleEnded = () => {
-    if (isLoop && audioRef.current) {
-      audioRef.current.currentTime = 0;
-      audioRef.current.play();
-    } else {
-      dispatch(nextTrack());
-    }
-  };
 
   const handleProgressClick = (e: MouseEvent<HTMLDivElement>) => {
     if (!audioRef.current || !duration) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const percent = (e.clientX - rect.left) / rect.width;
-    const newTime = percent * duration;
-    audioRef.current.currentTime = newTime;
-    setCurrentTime(newTime);
+    audioRef.current.currentTime = percent * duration;
   };
-
-  const progressPercent =
-    duration > 0 ? Math.min((currentTime / duration) * 100, 100) : 0;
 
   return (
     <>
@@ -120,7 +80,9 @@ export default function Bar() {
           >
             <div
               className={styles.bar__playerProgressFilled}
-              style={{ width: `${progressPercent}%` }}
+              style={{
+                width: `${(currentTime / duration) * 100 || 0}%`,
+              }}
             />
           </div>
 
@@ -132,90 +94,107 @@ export default function Bar() {
           <div className={styles.bar__playerBlock}>
             <div className={styles.bar__player}>
               <div className={styles.player__controls}>
-
-                <div onClick={handlePrevClick} className={styles.player__btnPrev}>
+                <button
+                  type="button"
+                  className={styles.iconBtn}
+                  onClick={() => dispatch(prevTrack())}
+                >
                   <Image src="/img/icon/prev.svg" width={15} height={14} alt="prev" />
-                </div>
+                </button>
 
-                <div onClick={handleTogglePlay} className={styles.player__btnPlay}>
-                  {isPlaying ? (
-                    <Image src="/img/icon/pause.svg" width={22} height={20} alt="pause" />
-                  ) : (
-                    <Image src="/img/icon/play.svg" width={22} height={20} alt="play" />
-                  )}
-                </div>
+                <button
+                  type="button"
+                  className={styles.iconBtn}
+                  onClick={() => dispatch(togglePlay())}
+                >
+                  <Image
+                    src={isPlaying ? "/img/icon/pause.svg" : "/img/icon/play.svg"}
+                    width={22}
+                    height={20}
+                    alt={isPlaying ? "pause" : "play"}
+                  />
+                </button>
 
-                <div onClick={handleNextClick} className={styles.player__btnNext}>
+                <button
+                  type="button"
+                  className={styles.iconBtn}
+                  onClick={() => dispatch(nextTrack())}
+                >
                   <Image src="/img/icon/next.svg" width={15} height={14} alt="next" />
-                </div>
+                </button>
 
-                <div
-                  onClick={handleLoopClick}
-                  className={`${styles.player__btnRepeat} ${
+                <button
+                  type="button"
+                  className={`${styles.iconBtn} ${
                     isLoop ? styles.player__btnRepeat_active : ""
                   }`}
+                  onClick={() => dispatch(toggleLoop())}
                 >
                   <Image src="/img/icon/repeat.svg" width={18} height={12} alt="repeat" />
-                </div>
+                </button>
 
-                <div
-                  onClick={handleShuffleClick}
-                  className={`${styles.player__btnShuffle} ${
+                <button
+                  type="button"
+                  className={`${styles.iconBtn} ${
                     isShuffle ? styles.player__btnShuffle_active : ""
                   }`}
+                  onClick={() => dispatch(toggleShuffle())}
                 >
                   <Image src="/img/icon/shuffle.svg" width={19} height={12} alt="shuffle" />
-                </div>
-
+                </button>
               </div>
 
               <div className={styles.player__trackPlay}>
-                <div className={styles.trackPlay__contain}>
-                  <div className={styles.trackPlay__image}>
-                    <Image src="/img/icon/note.svg" width={18} height={17} alt="note" />
-                  </div>
-
-                  <div className={styles.trackPlay__author}>
-                    <span>{currentTrack?.author}</span>
-                  </div>
-
-                  <div className={styles.trackPlay__album}>
-                    <span>{currentTrack?.title}</span>
-                  </div>
+                <div className={styles.trackPlay__image} />
+                <div>
+                  <div className={styles.trackPlay__author}>{currentTrack?.author}</div>
+                  <div className={styles.trackPlay__album}>{currentTrack?.title}</div>
                 </div>
               </div>
             </div>
 
             <div className={styles.bar__volumeBlock}>
               <div className={styles.volume__content}>
-                <div className={styles.volume__image}>
-                  <Image src="/img/icon/volume.svg" width={18} height={18} alt="volume" />
-                </div>
+                <Image
+                  className={styles.volume__image}
+                  src="/img/icon/volume.svg"
+                  width={13}
+                  height={18}
+                  alt="volume"
+                />
 
                 <div className={styles.volume__progress}>
                   <input
-  type="range"
-  min="0"
-  max="1"
-  step="0.01"
-  value={volume}
-  className={styles.volume__progressLine}
-  onChange={handleVolumeChange}
-/>
-
+                    className={styles.volume__progressLine}
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    value={volume}
+                    onChange={(e) => dispatch(setVolume(Number(e.target.value)))}
+                  />
                 </div>
               </div>
             </div>
-
           </div>
         </div>
       </div>
 
       <audio
         ref={audioRef}
-        onTimeUpdate={handleTimeUpdate}
-        onLoadedMetadata={handleLoadedMetadata}
-        onEnded={handleEnded}
+        onTimeUpdate={() => setCurrentTime(audioRef.current?.currentTime || 0)}
+        onLoadedMetadata={() => setDuration(audioRef.current?.duration || 0)}
+        onEnded={() => {
+          if (!audioRef.current) return;
+
+          if (isLoop) {
+            audioRef.current.currentTime = 0;
+            audioRef.current.play().catch(() => {});
+            return;
+          }
+
+          dispatch(nextTrack());
+        }}
       />
     </>
   );
