@@ -53,3 +53,109 @@
     opacity: 1;
   }
 }
+.track__title {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.track__right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
+}
+
+.likeBtn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.12s ease;
+}
+
+.likeBtn:hover {
+  transform: scale(1.08);
+}
+
+.likeBtn_active {
+  animation: likePop 0.18s ease;
+}
+
+@keyframes likePop {
+  0% { transform: scale(1); }
+  60% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+.track__duration {
+  min-width: 40px;
+  text-align: right;
+}
+
+.track__error {
+  color: #ff5a5a;
+  font-size: 12px;
+  padding-top: 6px;
+}
+.track__title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.track__right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+}
+
+.likeBtn {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+
+.likeBtn:hover {
+  transform: scale(1.08);
+}
+
+.likeBtn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.likeBtn_active {
+  animation: pop 0.18s ease;
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1.08);
+  }
+}
+
+.track__duration {
+  min-width: 44px;
+  text-align: right;
+}
+
+.likeError {
+  color: #ff4d4f;
+  font-size: 12px;
+  margin-top: 6px;
+}
