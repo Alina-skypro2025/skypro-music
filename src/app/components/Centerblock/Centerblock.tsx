@@ -21,7 +21,8 @@ type UiTrack = {
   duration: number;
   src: string;
   genre?: string[];
-  release_date?: number;
+  
+  release_date?: any;
 };
 
 const playlistTitles: Record<number, string> = {
@@ -46,6 +47,25 @@ function toNumberId(raw: any): number {
   const n = Number(raw);
   if (Number.isFinite(n)) return n;
   if (typeof raw === "string" && raw) return stableStringHashToNumber(raw);
+  return 0;
+}
+
+
+function getReleaseValue(t: { release_date?: any }) {
+  const raw = t.release_date;
+
+ 
+  if (typeof raw === "number" && Number.isFinite(raw)) return raw;
+
+
+  if (typeof raw === "string" && raw.trim()) {
+    const yearMatch = raw.match(/\d{4}/);
+    if (yearMatch) return Number(yearMatch[0]) || 0;
+
+    const ts = Date.parse(raw);
+    if (!Number.isNaN(ts)) return ts;
+  }
+
   return 0;
 }
 
@@ -103,7 +123,6 @@ export default function Centerblock({ playlistId }: { playlistId?: number }) {
     return playlistTitles[playlistId] ?? "Подборка";
   }, [playlistId]);
 
-  
   useEffect(() => {
     let cancelled = false;
 
@@ -200,11 +219,12 @@ export default function Centerblock({ playlistId }: { playlistId?: number }) {
         });
       }
 
+      
       if (sort === "old") {
-        result.sort((a, b) => (a.release_date ?? 0) - (b.release_date ?? 0));
+        result.sort((a, b) => getReleaseValue(a) - getReleaseValue(b));
       }
       if (sort === "new") {
-        result.sort((a, b) => (b.release_date ?? 0) - (a.release_date ?? 0));
+        result.sort((a, b) => getReleaseValue(b) - getReleaseValue(a));
       }
 
       setFilteredTracks(result);
@@ -419,7 +439,11 @@ export default function Centerblock({ playlistId }: { playlistId?: number }) {
           )}
         </div>
 
-        <button className={styles.filter__button} onClick={resetAllFilters} style={{ marginLeft: 12 }}>
+        <button
+          className={styles.filter__button}
+          onClick={resetAllFilters}
+          style={{ marginLeft: 12 }}
+        >
           сбросить
         </button>
       </div>
@@ -427,7 +451,9 @@ export default function Centerblock({ playlistId }: { playlistId?: number }) {
       <div className={styles.centerblock__content}>
         <div className={styles.content__playlist}>
           {filteredTracks.length === 0 ? (
-            <div style={{ color: "#b1b1b1", paddingTop: 24 }}>В подборке пока нет треков</div>
+            <div style={{ color: "#b1b1b1", paddingTop: 24 }}>
+              Нет подходящих треков
+            </div>
           ) : (
             filteredTracks.map((t) => (
               <TrackItem
