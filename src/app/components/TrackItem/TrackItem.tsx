@@ -3,17 +3,42 @@
 import styles from "./TrackItem.module.css";
 import Image from "next/image";
 import { useDispatch, useSelector } from "react-redux";
+import type { RootState, AppDispatch } from "@/app/store/store";
 import { playTrack } from "@/app/store/playerSlice";
 import { addToFavorite, removeFromFavorite } from "@/app/api/favoritesApi";
 import { setLikedLocal } from "@/app/store/favoritesSlice";
 import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
-export default function TrackItem({ track }: any) {
+type TrackItemProps = {
+  track: {
+    id: number | string;
+    title: string;
+    author: string;
+    album: string;
+    duration: number | string;
+    src?: string;
+    track_file?: string;
+  };
+};
+
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error && err.message) return err.message;
+
+  if (typeof err === "object" && err !== null && "message" in err) {
+    const msg = (err as { message?: unknown }).message;
+    if (typeof msg === "string") return msg;
+  }
+
+  return "Ошибка запроса к серверу";
+}
+
+export default function TrackItem({ track }: TrackItemProps) {
   const router = useRouter();
-  const dispatch = useDispatch();
-  const { currentTrack, isPlaying } = useSelector((state: any) => state.player);
-  const likedMap = useSelector((state: any) => state.favorites.ids);
+  const dispatch = useDispatch<AppDispatch>();
+
+  const { currentTrack, isPlaying } = useSelector((state: RootState) => state.player);
+  const likedMap = useSelector((state: RootState) => state.favorites.ids);
 
   const [likeError, setLikeError] = useState("");
   const [isLikeLoading, setIsLikeLoading] = useState(false);
@@ -46,10 +71,10 @@ export default function TrackItem({ track }: any) {
 
         if (!isLiked) await addToFavorite(trackId);
         else await removeFromFavorite(trackId);
-      } catch (err: any) {
+      } catch (err: unknown) {
         
         dispatch(setLikedLocal({ trackId, liked: isLiked }));
-        setLikeError(err?.message || "Ошибка запроса к серверу");
+        setLikeError(getErrorMessage(err));
       } finally {
         setIsLikeLoading(false);
       }
@@ -93,7 +118,6 @@ export default function TrackItem({ track }: any) {
             disabled={isLikeLoading}
             aria-label={isLiked ? "Убрать из избранного" : "Добавить в избранное"}
           >
-            
             <svg
               width="16"
               height="16"

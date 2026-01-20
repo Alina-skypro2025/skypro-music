@@ -7,6 +7,17 @@ import styles from "./signin.module.css";
 
 import { loginUser, saveAuthToStorage } from "@/app/api/authApi";
 
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error && err.message) {
+    return err.message;
+  }
+  if (typeof err === "object" && err !== null && "message" in err) {
+    const msg = (err as { message?: unknown }).message;
+    if (typeof msg === "string") return msg;
+  }
+  return "Ошибка входа";
+}
+
 export default function Signin() {
   const router = useRouter();
 
@@ -35,8 +46,8 @@ export default function Signin() {
 
       
       router.replace("/");
-    } catch (err: any) {
-      setErrorText(err?.message || "Ошибка входа");
+    } catch (err: unknown) {
+      setErrorText(getErrorMessage(err));
     } finally {
       setIsLoading(false);
     }

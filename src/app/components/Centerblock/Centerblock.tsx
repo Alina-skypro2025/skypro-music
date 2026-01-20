@@ -7,8 +7,9 @@ import { useDispatch } from "react-redux";
 import TrackItem from "@/app/components/TrackItem/TrackItem";
 import Loader from "@/app/components/Loader/Loader";
 import { getAllTracks, getTracksByPlaylist } from "@/app/api/tracks";
-import { Track } from "@/app/types/track";
+import type { Track } from "@/app/types/track";
 import { setPlaylist } from "@/app/store/playerSlice";
+import type { AppDispatch } from "@/app/store/store";
 
 type DropdownType = "author" | "album" | "genre" | "year" | null;
 type SortType = "default" | "old" | "new";
@@ -21,8 +22,7 @@ type UiTrack = {
   duration: number;
   src: string;
   genre?: string[];
-  
-  release_date?: any;
+  release_date?: unknown;
 };
 
 const playlistTitles: Record<number, string> = {
@@ -42,7 +42,7 @@ function stableStringHashToNumber(str: string) {
   return Math.abs(hash);
 }
 
-function toNumberId(raw: any): number {
+function toNumberId(raw: unknown): number {
   if (typeof raw === "number" && Number.isFinite(raw)) return raw;
   const n = Number(raw);
   if (Number.isFinite(n)) return n;
@@ -50,13 +50,29 @@ function toNumberId(raw: any): number {
   return 0;
 }
 
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null;
+}
 
-function getReleaseValue(t: { release_date?: any }) {
+function pickString(v: unknown): string {
+  return typeof v === "string" ? v : "";
+}
+
+function pickNumber(v: unknown): number {
+  return typeof v === "number" && Number.isFinite(v) ? v : 0;
+}
+
+function pickStringArray(v: unknown): string[] {
+  if (Array.isArray(v)) {
+    return v.filter((x): x is string => typeof x === "string");
+  }
+  return [];
+}
+
+function getReleaseValue(t: { release_date?: unknown }) {
   const raw = t.release_date;
 
- 
   if (typeof raw === "number" && Number.isFinite(raw)) return raw;
-
 
   if (typeof raw === "string" && raw.trim()) {
     const yearMatch = raw.match(/\d{4}/);
@@ -70,17 +86,19 @@ function getReleaseValue(t: { release_date?: any }) {
 }
 
 function mapApiTrackToUi(t: Track): UiTrack {
-  const rawId: any = (t as any).id ?? (t as any)._id;
+  const obj: Record<string, unknown> = isRecord(t) ? (t as Record<string, unknown>) : {};
+
+  const rawId = obj.id ?? obj._id;
 
   return {
     id: toNumberId(rawId),
-    title: (t as any).title ?? (t as any).name ?? "",
-    author: (t as any).author ?? "",
-    album: (t as any).album ?? "",
-    duration: (t as any).duration ?? (t as any).duration_in_seconds ?? 0,
-    src: (t as any).src ?? (t as any).track_file ?? "",
-    genre: (t as any).genre ?? [],
-    release_date: (t as any).release_date,
+    title: pickString(obj.title ?? obj.name),
+    author: pickString(obj.author),
+    album: pickString(obj.album),
+    duration: pickNumber(obj.duration ?? obj.duration_in_seconds),
+    src: pickString(obj.src ?? obj.track_file),
+    genre: pickStringArray(obj.genre),
+    release_date: obj.release_date,
   };
 }
 
@@ -102,7 +120,7 @@ function buildFallbackPlaylist(all: UiTrack[], playlistId: number) {
 }
 
 export default function Centerblock({ playlistId }: { playlistId?: number }) {
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
 
   const [tracks, setTracks] = useState<UiTrack[]>([]);
   const [filteredTracks, setFilteredTracks] = useState<UiTrack[]>([]);
@@ -141,7 +159,7 @@ export default function Centerblock({ playlistId }: { playlistId?: number }) {
             if (!cancelled) {
               setTracks(uiFromPlaylist);
               setFilteredTracks(uiFromPlaylist);
-              dispatch(setPlaylist(uiFromPlaylist) as any);
+              dispatch(setPlaylist(uiFromPlaylist));
             }
             return;
           }
@@ -153,7 +171,7 @@ export default function Centerblock({ playlistId }: { playlistId?: number }) {
           if (!cancelled) {
             setTracks(fallback);
             setFilteredTracks(fallback);
-            dispatch(setPlaylist(fallback) as any);
+            dispatch(setPlaylist(fallback));
           }
           return;
         }
@@ -164,7 +182,7 @@ export default function Centerblock({ playlistId }: { playlistId?: number }) {
         if (!cancelled) {
           setTracks(ui);
           setFilteredTracks(ui);
-          dispatch(setPlaylist(ui) as any);
+          dispatch(setPlaylist(ui));
         }
       } catch {
         if (!cancelled) setError("Не удалось загрузить треки");
@@ -219,7 +237,6 @@ export default function Centerblock({ playlistId }: { playlistId?: number }) {
         });
       }
 
-      
       if (sort === "old") {
         result.sort((a, b) => getReleaseValue(a) - getReleaseValue(b));
       }
@@ -451,9 +468,7 @@ export default function Centerblock({ playlistId }: { playlistId?: number }) {
       <div className={styles.centerblock__content}>
         <div className={styles.content__playlist}>
           {filteredTracks.length === 0 ? (
-            <div style={{ color: "#b1b1b1", paddingTop: 24 }}>
-              Нет подходящих треков
-            </div>
+            <div style={{ color: "#b1b1b1", paddingTop: 24 }}>Нет подходящих треков</div>
           ) : (
             filteredTracks.map((t) => (
               <TrackItem

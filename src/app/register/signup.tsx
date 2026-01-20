@@ -1,25 +1,38 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import styles from './signup.module.css';
-import { signUpUser } from '../api/auth';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import styles from "./signup.module.css";
+import { signUpUser } from "../api/auth";
+
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error && err.message) {
+    return err.message;
+  }
+
+  if (typeof err === "object" && err !== null && "message" in err) {
+    const msg = (err as { message?: unknown }).message;
+    if (typeof msg === "string") return msg;
+  }
+
+  return "Ошибка регистрации";
+}
 
 export default function SignUp() {
   const router = useRouter();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [repeatPassword, setRepeatPassword] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [repeatPassword, setRepeatPassword] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     if (password !== repeatPassword) {
-      setError('Пароли не совпадают');
+      setError("Пароли не совпадают");
       return;
     }
 
@@ -32,9 +45,9 @@ export default function SignUp() {
         username: email,
       });
 
-      router.push('/login');
-    } catch (err: any) {
-      setError(err.message);
+      router.push("/login");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -80,7 +93,7 @@ export default function SignUp() {
               className={styles.modal__btnSignupEnt}
               disabled={loading}
             >
-              {loading ? 'Регистрация...' : 'Зарегистрироваться'}
+              {loading ? "Регистрация..." : "Зарегистрироваться"}
             </button>
           </form>
         </div>

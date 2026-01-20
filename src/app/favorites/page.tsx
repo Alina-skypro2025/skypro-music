@@ -10,7 +10,8 @@ import Loader from "@/app/components/Loader/Loader";
 
 import { getAllTracks } from "@/app/api/tracks";
 import { setPlaylist } from "@/app/store/playerSlice";
-import { Track } from "@/app/types/track";
+import type { Track } from "@/app/types/track";
+import type { RootState, AppDispatch } from "@/app/store/store";
 
 type UiTrack = {
   id: number;
@@ -29,37 +30,58 @@ function stableStringHashToNumber(str: string) {
   return Math.abs(hash);
 }
 
-function toNumberId(raw: any): number {
+function toNumberId(raw: unknown): number {
   if (typeof raw === "number" && Number.isFinite(raw)) return raw;
+
   const n = Number(raw);
   if (Number.isFinite(n)) return n;
+
   if (typeof raw === "string" && raw) return stableStringHashToNumber(raw);
   return 0;
 }
 
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null;
+}
+
+function pickString(v: unknown): string {
+  return typeof v === "string" ? v : "";
+}
+
+function pickNumber(v: unknown): number {
+  return typeof v === "number" && Number.isFinite(v) ? v : 0;
+}
+
 function mapApiTrackToUi(t: Track): UiTrack {
-  const rawId: any = (t as any).id ?? (t as any)._id;
+  const obj: Record<string, unknown> = isRecord(t) ? (t as Record<string, unknown>) : {};
+
+  const rawId = obj.id ?? obj._id;
   return {
     id: toNumberId(rawId),
-    title: (t as any).title ?? (t as any).name ?? "",
-    author: (t as any).author ?? "",
-    album: (t as any).album ?? "",
-    duration: (t as any).duration ?? (t as any).duration_in_seconds ?? 0,
-    src: (t as any).src ?? (t as any).track_file ?? "",
+    title: pickString(obj.title ?? obj.name),
+    author: pickString(obj.author),
+    album: pickString(obj.album),
+    duration: pickNumber(obj.duration ?? obj.duration_in_seconds),
+    src: pickString(obj.src ?? obj.track_file),
   };
+}
+
+function getErrorMessage(e: unknown): string {
+  if (e instanceof Error && typeof e.message === "string" && e.message) return e.message;
+  if (isRecord(e) && typeof e.message === "string") return e.message;
+  return "Ошибка запроса к серверу";
 }
 
 export default function FavoritesPage() {
   const router = useRouter();
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
 
-  const likedMap = useSelector((state: any) => state.favorites?.ids || {});
+  const likedMap = useSelector((state: RootState) => state.favorites?.ids || {});
 
   const [allTracks, setAllTracks] = useState<UiTrack[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorText, setErrorText] = useState("");
 
-  
   useEffect(() => {
     const token = localStorage.getItem("skypro_access");
     if (!token) router.replace("/login");
@@ -74,11 +96,13 @@ export default function FavoritesPage() {
         setErrorText("");
 
         const data = await getAllTracks();
-        const ui = (data ?? []).map(mapApiTrackToUi).filter((t) => t.id && t.src);
+        const ui = (data ?? [])
+          .map(mapApiTrackToUi)
+          .filter((t) => t.id && t.src);
 
         if (!cancelled) setAllTracks(ui);
-      } catch (e: any) {
-        if (!cancelled) setErrorText(e?.message || "Ошибка запроса к серверу");
+      } catch (e: unknown) {
+        if (!cancelled) setErrorText(getErrorMessage(e));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -96,7 +120,8 @@ export default function FavoritesPage() {
   }, [allTracks, likedMap]);
 
   useEffect(() => {
-    dispatch(setPlaylist(visibleTracks) as any);
+    
+    dispatch(setPlaylist(visibleTracks as unknown as Track[]));
   }, [dispatch, visibleTracks]);
 
   return (
