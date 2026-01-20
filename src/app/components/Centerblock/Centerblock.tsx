@@ -1,12 +1,13 @@
 "use client";
 
 import styles from "./Centerblock.module.css";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
+import { useDispatch } from "react-redux";
+
 import TrackItem from "@/app/components/TrackItem/TrackItem";
 import Loader from "@/app/components/Loader/Loader";
 import { getAllTracks, getTracksByPlaylist } from "@/app/api/tracks";
 import { Track } from "@/app/types/track";
-import { useDispatch } from "react-redux";
 import { setPlaylist } from "@/app/store/playerSlice";
 
 type DropdownType = "author" | "album" | "genre" | "year" | null;
@@ -20,7 +21,8 @@ type UiTrack = {
   duration: number;
   src: string;
   genre?: string[];
-  release_date?: number;
+  
+  release_date?: any;
 };
 
 const playlistTitles: Record<number, string> = {
@@ -48,6 +50,25 @@ function toNumberId(raw: any): number {
   return 0;
 }
 
+
+function getReleaseValue(t: { release_date?: any }) {
+  const raw = t.release_date;
+
+ 
+  if (typeof raw === "number" && Number.isFinite(raw)) return raw;
+
+
+  if (typeof raw === "string" && raw.trim()) {
+    const yearMatch = raw.match(/\d{4}/);
+    if (yearMatch) return Number(yearMatch[0]) || 0;
+
+    const ts = Date.parse(raw);
+    if (!Number.isNaN(ts)) return ts;
+  }
+
+  return 0;
+}
+
 function mapApiTrackToUi(t: Track): UiTrack {
   const rawId: any = (t as any).id ?? (t as any)._id;
 
@@ -63,18 +84,15 @@ function mapApiTrackToUi(t: Track): UiTrack {
   };
 }
 
-
 function buildFallbackPlaylist(all: UiTrack[], playlistId: number) {
   const list = all.filter((t) => t.id && t.src);
 
-  
   if (list.length < PLAYLIST_MAX * 3) {
-    const byMod = list.filter((t) => (t.id % 3) === ((playlistId - 1) % 3));
+    const byMod = list.filter((t) => t.id % 3 === (playlistId - 1) % 3);
     const base = byMod.length >= PLAYLIST_MIN ? byMod : list;
     return base.slice(0, Math.min(PLAYLIST_MAX, base.length));
   }
 
-  
   const chunkSize = PLAYLIST_MAX;
   const start = (playlistId - 1) * chunkSize;
   const chunk = list.slice(start, start + chunkSize);
@@ -113,50 +131,40 @@ export default function Centerblock({ playlistId }: { playlistId?: number }) {
         setLoading(true);
         setError("");
 
-        
         if (playlistId) {
-          
           const data = (await getTracksByPlaylist(playlistId)) ?? [];
           const uiFromPlaylist = (data ?? [])
             .map(mapApiTrackToUi)
             .filter((t) => t.id && t.src);
 
-          
           if (uiFromPlaylist.length > 0) {
             if (!cancelled) {
               setTracks(uiFromPlaylist);
               setFilteredTracks(uiFromPlaylist);
-              dispatch(setPlaylist(uiFromPlaylist));
+              dispatch(setPlaylist(uiFromPlaylist) as any);
             }
             return;
           }
 
-          
           const all = (await getAllTracks()) ?? [];
-          const allUi = (all ?? [])
-            .map(mapApiTrackToUi)
-            .filter((t) => t.id && t.src);
-
+          const allUi = (all ?? []).map(mapApiTrackToUi).filter((t) => t.id && t.src);
           const fallback = buildFallbackPlaylist(allUi, playlistId);
 
           if (!cancelled) {
             setTracks(fallback);
             setFilteredTracks(fallback);
-            dispatch(setPlaylist(fallback));
+            dispatch(setPlaylist(fallback) as any);
           }
           return;
         }
 
-        
         const all = (await getAllTracks()) ?? [];
-        const ui = (all ?? [])
-          .map(mapApiTrackToUi)
-          .filter((t) => t.id && t.src);
+        const ui = (all ?? []).map(mapApiTrackToUi).filter((t) => t.id && t.src);
 
         if (!cancelled) {
           setTracks(ui);
           setFilteredTracks(ui);
-          dispatch(setPlaylist(ui));
+          dispatch(setPlaylist(ui) as any);
         }
       } catch {
         if (!cancelled) setError("Не удалось загрузить треки");
@@ -186,45 +194,49 @@ export default function Centerblock({ playlistId }: { playlistId?: number }) {
     return Array.from(new Set(all)).filter(Boolean);
   }, [tracks]);
 
-  const applyAll = (
-    base: UiTrack[],
-    author: string | null,
-    album: string | null,
-    genre: string | null,
-    sort: SortType,
-    query: string
-  ) => {
-    let result = [...base];
+  const applyAll = useCallback(
+    (
+      base: UiTrack[],
+      author: string | null,
+      album: string | null,
+      genre: string | null,
+      sort: SortType,
+      query: string
+    ) => {
+      let result = [...base];
 
-    if (author) result = result.filter((t) => t.author === author);
-    if (album) result = result.filter((t) => t.album === album);
-    if (genre) result = result.filter((t) => (t.genre ?? []).includes(genre));
+      if (author) result = result.filter((t) => t.author === author);
+      if (album) result = result.filter((t) => t.album === album);
+      if (genre) result = result.filter((t) => (t.genre ?? []).includes(genre));
 
-    const q = query.trim().toLowerCase();
-    if (q) {
-      result = result.filter((t) => {
-        const name = (t.title ?? "").toLowerCase();
-        const a = (t.author ?? "").toLowerCase();
-        const al = (t.album ?? "").toLowerCase();
-        return name.includes(q) || a.includes(q) || al.includes(q);
-      });
-    }
+      const q = query.trim().toLowerCase();
+      if (q) {
+        result = result.filter((t) => {
+          const name = (t.title ?? "").toLowerCase();
+          const a = (t.author ?? "").toLowerCase();
+          const al = (t.album ?? "").toLowerCase();
+          return name.includes(q) || a.includes(q) || al.includes(q);
+        });
+      }
 
-    if (sort === "old") {
-      result.sort((a, b) => (a.release_date ?? 0) - (b.release_date ?? 0));
-    }
-    if (sort === "new") {
-      result.sort((a, b) => (b.release_date ?? 0) - (a.release_date ?? 0));
-    }
+      
+      if (sort === "old") {
+        result.sort((a, b) => getReleaseValue(a) - getReleaseValue(b));
+      }
+      if (sort === "new") {
+        result.sort((a, b) => getReleaseValue(b) - getReleaseValue(a));
+      }
 
-    setFilteredTracks(result);
-  };
+      setFilteredTracks(result);
+    },
+    []
+  );
 
-  const toggleDropdown = (type: DropdownType) => {
+  const toggleDropdown = useCallback((type: DropdownType) => {
     setOpenDropdown((prev) => (prev === type ? null : type));
-  };
+  }, []);
 
-  const resetAllFilters = () => {
+  const resetAllFilters = useCallback(() => {
     setSelectedAuthor(null);
     setSelectedAlbum(null);
     setSelectedGenre(null);
@@ -232,32 +244,47 @@ export default function Centerblock({ playlistId }: { playlistId?: number }) {
     setSearchQuery("");
     setOpenDropdown(null);
     setFilteredTracks(tracks);
-  };
+  }, [tracks]);
 
-  const onSelectAuthor = (val: string) => {
-    setSelectedAuthor(val);
-    applyAll(tracks, val, selectedAlbum, selectedGenre, activeSort, searchQuery);
-  };
+  const onSelectAuthor = useCallback(
+    (val: string) => {
+      setSelectedAuthor(val);
+      applyAll(tracks, val, selectedAlbum, selectedGenre, activeSort, searchQuery);
+    },
+    [applyAll, tracks, selectedAlbum, selectedGenre, activeSort, searchQuery]
+  );
 
-  const onSelectAlbum = (val: string) => {
-    setSelectedAlbum(val);
-    applyAll(tracks, selectedAuthor, val, selectedGenre, activeSort, searchQuery);
-  };
+  const onSelectAlbum = useCallback(
+    (val: string) => {
+      setSelectedAlbum(val);
+      applyAll(tracks, selectedAuthor, val, selectedGenre, activeSort, searchQuery);
+    },
+    [applyAll, tracks, selectedAuthor, selectedGenre, activeSort, searchQuery]
+  );
 
-  const onSelectGenre = (val: string) => {
-    setSelectedGenre(val);
-    applyAll(tracks, selectedAuthor, selectedAlbum, val, activeSort, searchQuery);
-  };
+  const onSelectGenre = useCallback(
+    (val: string) => {
+      setSelectedGenre(val);
+      applyAll(tracks, selectedAuthor, selectedAlbum, val, activeSort, searchQuery);
+    },
+    [applyAll, tracks, selectedAuthor, selectedAlbum, activeSort, searchQuery]
+  );
 
-  const onSelectSort = (val: SortType) => {
-    setActiveSort(val);
-    applyAll(tracks, selectedAuthor, selectedAlbum, selectedGenre, val, searchQuery);
-  };
+  const onSelectSort = useCallback(
+    (val: SortType) => {
+      setActiveSort(val);
+      applyAll(tracks, selectedAuthor, selectedAlbum, selectedGenre, val, searchQuery);
+    },
+    [applyAll, tracks, selectedAuthor, selectedAlbum, selectedGenre, searchQuery]
+  );
 
-  const onSearch = (val: string) => {
-    setSearchQuery(val);
-    applyAll(tracks, selectedAuthor, selectedAlbum, selectedGenre, activeSort, val);
-  };
+  const onSearch = useCallback(
+    (val: string) => {
+      setSearchQuery(val);
+      applyAll(tracks, selectedAuthor, selectedAlbum, selectedGenre, activeSort, val);
+    },
+    [applyAll, tracks, selectedAuthor, selectedAlbum, selectedGenre, activeSort]
+  );
 
   if (loading) return <Loader />;
   if (error) return <div className={styles.error}>{error}</div>;
@@ -425,7 +452,7 @@ export default function Centerblock({ playlistId }: { playlistId?: number }) {
         <div className={styles.content__playlist}>
           {filteredTracks.length === 0 ? (
             <div style={{ color: "#b1b1b1", paddingTop: 24 }}>
-              В подборке пока нет треков
+              Нет подходящих треков
             </div>
           ) : (
             filteredTracks.map((t) => (

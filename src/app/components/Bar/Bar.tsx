@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, MouseEvent } from "react";
+import { useEffect, useMemo, useRef, useState, MouseEvent, useCallback } from "react";
 import Image from "next/image";
 import styles from "./Bar.module.css";
 import { useSelector, useDispatch } from "react-redux";
@@ -12,6 +12,10 @@ import {
   toggleShuffle,
   toggleLoop,
 } from "@/app/store/playerSlice";
+
+import { addToFavorite, removeFromFavorite } from "@/app/api/favoritesApi";
+import { setLikedLocal, clearFavoritesError } from "@/app/store/favoritesSlice";
+import { useRouter } from "next/navigation";
 
 function formatTime(seconds: number) {
   if (!seconds || Number.isNaN(seconds)) return "0:00";
@@ -29,14 +33,23 @@ function normalizeSrc(raw: any): string {
 }
 
 export default function Bar() {
+  const router = useRouter();
   const dispatch = useDispatch();
+
   const { currentTrack, isPlaying, volume, isShuffle, isLoop } = useSelector(
     (state: any) => state.player
   );
+  const likedMap = useSelector((state: any) => state.favorites?.ids || {});
+  const favError = useSelector((state: any) => state.favorites?.error || "");
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+
+  const [isLikeLoading, setIsLikeLoading] = useState(false);
+
+  const trackId = useMemo(() => String(currentTrack?.id ?? ""), [currentTrack?.id]);
+  const isLiked = useMemo(() => (trackId ? Boolean(likedMap?.[trackId]) : false), [likedMap, trackId]);
 
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = volume;
@@ -46,7 +59,6 @@ export default function Bar() {
     if (!audioRef.current || !currentTrack) return;
 
     const src = normalizeSrc(currentTrack.src || currentTrack.track_file);
-
     if (!src) return;
 
     audioRef.current.src = src;
@@ -58,9 +70,7 @@ export default function Bar() {
 
   useEffect(() => {
     if (!audioRef.current) return;
-    isPlaying
-      ? audioRef.current.play().catch(() => {})
-      : audioRef.current.pause();
+    isPlaying ? audioRef.current.play().catch(() => {}) : audioRef.current.pause();
   }, [isPlaying]);
 
   const handleProgressClick = (e: MouseEvent<HTMLDivElement>) => {
@@ -70,19 +80,47 @@ export default function Bar() {
     audioRef.current.currentTime = percent * duration;
   };
 
+  const onToggleLike = useCallback(
+    async (e: React.MouseEvent) => {
+      e.stopPropagation();
+      dispatch(clearFavoritesError());
+
+      const token = typeof window !== "undefined" ? localStorage.getItem("skypro_access") : null;
+      if (!token) {
+        router.replace("/login");
+        return;
+      }
+
+      if (!trackId) return;
+
+      try {
+        setIsLikeLoading(true);
+
+       
+        dispatch(setLikedLocal({ trackId, liked: !isLiked }));
+
+        if (!isLiked) await addToFavorite(trackId);
+        else await removeFromFavorite(trackId);
+      } catch (err: any) {
+        
+        dispatch(setLikedLocal({ trackId, liked: isLiked }));
+       
+        console.error(err);
+      } finally {
+        setIsLikeLoading(false);
+      }
+    },
+    [dispatch, isLiked, router, trackId]
+  );
+
   return (
     <>
       <div className={styles.bar}>
         <div className={styles.bar__content}>
-          <div
-            className={styles.bar__playerProgress}
-            onClick={handleProgressClick}
-          >
+          <div className={styles.bar__playerProgress} onClick={handleProgressClick}>
             <div
               className={styles.bar__playerProgressFilled}
-              style={{
-                width: `${(currentTime / duration) * 100 || 0}%`,
-              }}
+              style={{ width: `${(currentTime / duration) * 100 || 0}%` }}
             />
           </div>
 
@@ -94,19 +132,11 @@ export default function Bar() {
           <div className={styles.bar__playerBlock}>
             <div className={styles.bar__player}>
               <div className={styles.player__controls}>
-                <button
-                  type="button"
-                  className={styles.iconBtn}
-                  onClick={() => dispatch(prevTrack())}
-                >
+                <button type="button" className={styles.iconBtn} onClick={() => dispatch(prevTrack())}>
                   <Image src="/img/icon/prev.svg" width={15} height={14} alt="prev" />
                 </button>
 
-                <button
-                  type="button"
-                  className={styles.iconBtn}
-                  onClick={() => dispatch(togglePlay())}
-                >
+                <button type="button" className={styles.iconBtn} onClick={() => dispatch(togglePlay())}>
                   <Image
                     src={isPlaying ? "/img/icon/pause.svg" : "/img/icon/play.svg"}
                     width={22}
@@ -115,19 +145,13 @@ export default function Bar() {
                   />
                 </button>
 
-                <button
-                  type="button"
-                  className={styles.iconBtn}
-                  onClick={() => dispatch(nextTrack())}
-                >
+                <button type="button" className={styles.iconBtn} onClick={() => dispatch(nextTrack())}>
                   <Image src="/img/icon/next.svg" width={15} height={14} alt="next" />
                 </button>
 
                 <button
                   type="button"
-                  className={`${styles.iconBtn} ${
-                    isLoop ? styles.player__btnRepeat_active : ""
-                  }`}
+                  className={`${styles.iconBtn} ${isLoop ? styles.player__btnRepeat_active : ""}`}
                   onClick={() => dispatch(toggleLoop())}
                 >
                   <Image src="/img/icon/repeat.svg" width={18} height={12} alt="repeat" />
@@ -135,9 +159,7 @@ export default function Bar() {
 
                 <button
                   type="button"
-                  className={`${styles.iconBtn} ${
-                    isShuffle ? styles.player__btnShuffle_active : ""
-                  }`}
+                  className={`${styles.iconBtn} ${isShuffle ? styles.player__btnShuffle_active : ""}`}
                   onClick={() => dispatch(toggleShuffle())}
                 >
                   <Image src="/img/icon/shuffle.svg" width={19} height={12} alt="shuffle" />
@@ -150,7 +172,36 @@ export default function Bar() {
                   <div className={styles.trackPlay__author}>{currentTrack?.author}</div>
                   <div className={styles.trackPlay__album}>{currentTrack?.title}</div>
                 </div>
+
+                
+                <button
+                  type="button"
+                  className={`${styles.iconBtn} ${isLiked ? styles.likeBtn_active : ""}`}
+                  onClick={onToggleLike}
+                  disabled={isLikeLoading || !trackId}
+                  aria-label={isLiked ? "Убрать из избранного" : "Добавить в избранное"}
+                  style={{ marginLeft: 16 }}
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill={isLiked ? "#AD61FF" : "none"}
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M12 21s-7.5-4.6-10-9.4C.4 8 2.2 4.8 5.6 4.1 7.7 3.7 9.6 4.7 12 7c2.4-2.3 4.3-3.3 6.4-2.9C21.8 4.8 23.6 8 22 11.6 19.5 16.4 12 21 12 21z"
+                      stroke={isLiked ? "#AD61FF" : "#B1B1B1"}
+                      strokeWidth="1.5"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
               </div>
+
+              {favError ? (
+                <div style={{ color: "#ff4d4f", fontSize: 12, marginLeft: 12 }}>{favError}</div>
+              ) : null}
             </div>
 
             <div className={styles.bar__volumeBlock}>
