@@ -6,6 +6,15 @@ import TrackItem from "@/app/components/TrackItem/TrackItem";
 import styles from "@/app/components/Centerblock/Centerblock.module.css";
 import { tracks as myTracks } from "@/app/data/tracks";
 
+type LocalTrack = {
+  _id: number;
+  name: string;
+  author: string;
+  album: string;
+  duration_in_seconds: number;
+  track_file: string;
+};
+
 const playlistMeta: Record<number, { title: string; ids: number[] }> = {
   1: { title: "Плейлист дня", ids: [1, 2] },
   2: { title: "100 танцевальных хитов", ids: [2, 3] },
@@ -23,7 +32,9 @@ export default function PlaylistPage() {
 
   const meta = playlistMeta[playlistId] ?? { title: "Подборка", ids: [] };
 
-  const list = myTracks.filter((t: any) => meta.ids.includes(t._id));
+  const list = (myTracks as LocalTrack[]).filter((t) =>
+    meta.ids.includes(t._id)
+  );
 
   return (
     <div className={styles.centerblock}>
@@ -36,7 +47,7 @@ export default function PlaylistPage() {
               В подборке пока нет треков
             </div>
           ) : (
-            list.map((t: any) => (
+            list.map((t) => (
               <TrackItem
                 key={t._id}
                 track={{

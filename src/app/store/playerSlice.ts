@@ -1,7 +1,33 @@
-import { createSlice } from "@reduxjs/toolkit";
+import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import { tracks as allTracks } from "@/app/data/tracks";
 
-function normalizeSrc(raw: any): string {
+type TrackNormalized = {
+  id: number;
+  title: string;
+  author: string;
+  album: string;
+  duration: number;
+  src: string;
+  
+  track_file: string;
+};
+
+type PlayerState = {
+  tracks: TrackNormalized[];
+  currentPlaylist: TrackNormalized[];
+  currentTrack: TrackNormalized | null;
+  currentIndex: number;
+  isPlaying: boolean;
+  volume: number;
+  isShuffle: boolean;
+  isLoop: boolean;
+};
+
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null;
+}
+
+function normalizeSrc(raw: unknown): string {
   const s = String(raw ?? "").trim();
   if (!s) return "";
   if (s.startsWith("http://") || s.startsWith("https://")) return s;
@@ -9,18 +35,20 @@ function normalizeSrc(raw: any): string {
   return `/${s}`;
 }
 
-function normalizeTrack(t: any) {
-  const id = Number(t.id ?? t._id);
+function normalizeTrack(t: unknown): TrackNormalized {
+  const obj: Record<string, unknown> = isRecord(t) ? t : {};
 
-  const srcRaw = t.src ?? t.track_file ?? "";
+  const id = Number(obj.id ?? obj._id);
+
+  const srcRaw = obj.src ?? obj.track_file ?? "";
   const src = normalizeSrc(srcRaw);
 
   return {
     id,
-    title: t.title ?? t.name ?? "",
-    author: t.author ?? "",
-    album: t.album ?? "",
-    duration: t.duration ?? t.duration_in_seconds ?? 0,
+    title: String(obj.title ?? obj.name ?? ""),
+    author: String(obj.author ?? ""),
+    album: String(obj.album ?? ""),
+    duration: Number(obj.duration ?? obj.duration_in_seconds ?? 0),
     src,
 
     
@@ -28,11 +56,11 @@ function normalizeTrack(t: any) {
   };
 }
 
-const normalized = (allTracks ?? [])
-  .map(normalizeTrack)
-  .filter((t) => Number.isFinite(t.id) && t.id > 0 && t.src);
+const normalized: TrackNormalized[] = (Array.isArray(allTracks) ? allTracks : [])
+  .map((t) => normalizeTrack(t))
+  .filter((t) => Number.isFinite(t.id) && t.id > 0 && Boolean(t.src));
 
-const initialState = {
+const initialState: PlayerState = {
   tracks: normalized,
   currentPlaylist: normalized,
   currentTrack: normalized[0] ?? null,
@@ -47,17 +75,19 @@ const playerSlice = createSlice({
   name: "player",
   initialState,
   reducers: {
-    setPlaylist(state, action) {
-      const list = (action.payload ?? [])
-        .map(normalizeTrack)
-        .filter((t: any) => Number.isFinite(t.id) && t.id > 0 && t.src);
+    setPlaylist(state, action: PayloadAction<unknown>) {
+      const payload = action.payload;
+
+      const list = (Array.isArray(payload) ? payload : [])
+        .map((t) => normalizeTrack(t))
+        .filter((t) => Number.isFinite(t.id) && t.id > 0 && Boolean(t.src));
 
       if (list.length === 0) return;
 
       state.currentPlaylist = list;
 
       const idx = state.currentTrack
-        ? list.findIndex((t: any) => t.id === state.currentTrack.id)
+        ? list.findIndex((t) => t.id === state.currentTrack?.id)
         : -1;
 
       if (idx === -1) {
@@ -69,10 +99,10 @@ const playerSlice = createSlice({
       }
     },
 
-    playTrack(state, action) {
+    playTrack(state, action: PayloadAction<unknown>) {
       const track = normalizeTrack(action.payload);
 
-      const index = state.currentPlaylist.findIndex((t: any) => t.id === track.id);
+      const index = state.currentPlaylist.findIndex((t) => t.id === track.id);
 
       state.currentTrack = track;
       state.currentIndex = index !== -1 ? index : state.currentIndex;
@@ -123,7 +153,7 @@ const playerSlice = createSlice({
       state.isPlaying = true;
     },
 
-    setVolume(state, action) {
+    setVolume(state, action: PayloadAction<number>) {
       state.volume = action.payload;
     },
 

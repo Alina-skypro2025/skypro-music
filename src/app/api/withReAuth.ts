@@ -1,7 +1,5 @@
 import { refreshToken } from "@/app/api/authApi";
 
-type AnyJson = any;
-
 type RequestInitEx = RequestInit & {
   headers?: Record<string, string>;
 };
@@ -21,18 +19,31 @@ function setAccess(access: string) {
   localStorage.setItem("skypro_access", access);
 }
 
-async function readErrorMessage(res: Response) {
+async function readErrorMessage(res: Response): Promise<string> {
   try {
-    const json = await res.json();
-    return (
-      json?.message ||
-      json?.detail ||
-      json?.error ||
-      "Ошибка запроса к серверу"
-    );
+    const json: unknown = await res.json();
+
+    if (typeof json === "object" && json !== null) {
+      const obj = json as Record<string, unknown>;
+      const msg =
+        obj.message ??
+        obj.detail ??
+        obj.error ??
+        "Ошибка запроса к серверу";
+
+      if (typeof msg === "string") return msg;
+    }
+
+    return "Ошибка запроса к серверу";
   } catch {
     return "Ошибка запроса к серверу";
   }
+}
+
+type HttpError = Error & { status?: number };
+
+function isHttpError(err: unknown): err is HttpError {
+  return typeof err === "object" && err !== null && "message" in err;
 }
 
 async function doFetch<T>(url: string, init: RequestInitEx): Promise<T> {
@@ -45,7 +56,7 @@ async function doFetch<T>(url: string, init: RequestInitEx): Promise<T> {
 
   if (!res.ok) {
     const msg = await readErrorMessage(res);
-    const err: any = new Error(msg);
+    const err: HttpError = new Error(msg);
     err.status = res.status;
     throw err;
   }
@@ -54,8 +65,7 @@ async function doFetch<T>(url: string, init: RequestInitEx): Promise<T> {
   return (await res.text()) as unknown as T;
 }
 
-
-export async function withReAuth<T = AnyJson>(
+export async function withReAuth<T = unknown>(
   url: string,
   init: RequestInitEx = {}
 ): Promise<T> {
@@ -75,22 +85,25 @@ export async function withReAuth<T = AnyJson>(
 
   try {
     return await doFetch<T>(url, { ...init, headers });
-  } catch (err: any) {
-    if (err?.status !== 401) throw err;
+  } catch (err: unknown) {
+    if (!isHttpError(err) || err.status !== 401) throw err;
 
     const refresh = getRefresh();
     if (!refresh) throw err;
 
     
     const tokens = await refreshToken(refresh);
-    if (!tokens?.access) throw err;
+    if (!tokens || typeof tokens !== "object" || !("access" in tokens)) throw err;
 
-    setAccess(tokens.access);
+    const accessToken = (tokens as { access?: unknown }).access;
+    if (typeof accessToken !== "string" || !accessToken) throw err;
 
-   
+    setAccess(accessToken);
+
+    
     const retryHeaders: Record<string, string> = {
       ...(headers || {}),
-      Authorization: `Bearer ${tokens.access}`,
+      Authorization: `Bearer ${accessToken}`,
     };
 
     return await doFetch<T>(url, { ...init, headers: retryHeaders });

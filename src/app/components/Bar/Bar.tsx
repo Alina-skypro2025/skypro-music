@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState, MouseEvent, useCallback } from "r
 import Image from "next/image";
 import styles from "./Bar.module.css";
 import { useSelector, useDispatch } from "react-redux";
+import type { RootState, AppDispatch } from "@/app/store/store";
+
 import {
   togglePlay,
   setVolume,
@@ -24,7 +26,7 @@ function formatTime(seconds: number) {
   return `${m}:${s < 10 ? "0" + s : s}`;
 }
 
-function normalizeSrc(raw: any): string {
+function normalizeSrc(raw: unknown): string {
   const s = String(raw ?? "").trim();
   if (!s) return "";
   if (s.startsWith("http://") || s.startsWith("https://")) return s;
@@ -34,13 +36,13 @@ function normalizeSrc(raw: any): string {
 
 export default function Bar() {
   const router = useRouter();
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
 
   const { currentTrack, isPlaying, volume, isShuffle, isLoop } = useSelector(
-    (state: any) => state.player
+    (state: RootState) => state.player
   );
-  const likedMap = useSelector((state: any) => state.favorites?.ids || {});
-  const favError = useSelector((state: any) => state.favorites?.error || "");
+  const likedMap = useSelector((state: RootState) => state.favorites?.ids || {});
+  const favError = useSelector((state: RootState) => state.favorites?.error || "");
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
@@ -49,7 +51,10 @@ export default function Bar() {
   const [isLikeLoading, setIsLikeLoading] = useState(false);
 
   const trackId = useMemo(() => String(currentTrack?.id ?? ""), [currentTrack?.id]);
-  const isLiked = useMemo(() => (trackId ? Boolean(likedMap?.[trackId]) : false), [likedMap, trackId]);
+  const isLiked = useMemo(
+    () => (trackId ? Boolean(likedMap?.[trackId]) : false),
+    [likedMap, trackId]
+  );
 
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = volume;
@@ -58,7 +63,9 @@ export default function Bar() {
   useEffect(() => {
     if (!audioRef.current || !currentTrack) return;
 
-    const src = normalizeSrc(currentTrack.src || currentTrack.track_file);
+    const src = normalizeSrc((currentTrack as unknown as { src?: unknown; track_file?: unknown }).src ??
+      (currentTrack as unknown as { track_file?: unknown }).track_file);
+
     if (!src) return;
 
     audioRef.current.src = src;
@@ -85,7 +92,8 @@ export default function Bar() {
       e.stopPropagation();
       dispatch(clearFavoritesError());
 
-      const token = typeof window !== "undefined" ? localStorage.getItem("skypro_access") : null;
+      const token =
+        typeof window !== "undefined" ? localStorage.getItem("skypro_access") : null;
       if (!token) {
         router.replace("/login");
         return;
@@ -96,16 +104,14 @@ export default function Bar() {
       try {
         setIsLikeLoading(true);
 
-       
+        
         dispatch(setLikedLocal({ trackId, liked: !isLiked }));
 
         if (!isLiked) await addToFavorite(trackId);
         else await removeFromFavorite(trackId);
-      } catch (err: any) {
+      } catch {
         
         dispatch(setLikedLocal({ trackId, liked: isLiked }));
-       
-        console.error(err);
       } finally {
         setIsLikeLoading(false);
       }
@@ -169,11 +175,19 @@ export default function Bar() {
               <div className={styles.player__trackPlay}>
                 <div className={styles.trackPlay__image} />
                 <div>
-                  <div className={styles.trackPlay__author}>{currentTrack?.author}</div>
-                  <div className={styles.trackPlay__album}>{currentTrack?.title}</div>
+                 <div className={styles.trackPlay__author}>
+  {typeof (currentTrack as unknown as { author?: unknown })?.author === "string"
+    ? (currentTrack as unknown as { author?: string }).author
+    : ""}
+</div>
+<div className={styles.trackPlay__album}>
+  {typeof (currentTrack as unknown as { title?: unknown })?.title === "string"
+    ? (currentTrack as unknown as { title?: string }).title
+    : ""}
+</div>
+
                 </div>
 
-                
                 <button
                   type="button"
                   className={`${styles.iconBtn} ${isLiked ? styles.likeBtn_active : ""}`}

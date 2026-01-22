@@ -9,30 +9,66 @@ export async function getAllTracks(): Promise<Track[]> {
     cache: "no-store",
   });
 
-  if (!res.ok) throw new Error("Ошибка загрузки треков");
+  if (!res.ok) {
+    throw new Error("Ошибка загрузки треков");
+  }
 
-  const json = await res.json();
-  return json.data;
-}
+  const json: unknown = await res.json();
 
-function extractTracks(json: any): Track[] {
-  
-  if (Array.isArray(json?.data)) return json.data;
-
-  
-  if (Array.isArray(json?.data?.items)) return json.data.items;
-  if (Array.isArray(json?.data?.tracks)) return json.data.tracks;
-  if (Array.isArray(json?.data?.data)) return json.data.data;
-
-  
-  if (Array.isArray(json?.items)) return json.items;
-  if (Array.isArray(json?.tracks)) return json.tracks;
-  if (Array.isArray(json?.results)) return json.results;
+  if (
+    typeof json === "object" &&
+    json !== null &&
+    "data" in json &&
+    Array.isArray((json as { data?: unknown }).data)
+  ) {
+    return (json as { data: Track[] }).data;
+  }
 
   return [];
 }
 
-export async function getTracksByPlaylist(playlistId: number): Promise<Track[]> {
+function extractTracks(json: unknown): Track[] {
+  if (typeof json !== "object" || json === null) return [];
+
+  const obj = json as Record<string, unknown>;
+
+  const tryArray = (v: unknown): Track[] | null =>
+    Array.isArray(v) ? (v as Track[]) : null;
+
+  
+  let result = tryArray(obj.data);
+  if (result) return result;
+
+  
+  if (typeof obj.data === "object" && obj.data !== null) {
+    const dataObj = obj.data as Record<string, unknown>;
+
+    result = tryArray(dataObj.items);
+    if (result) return result;
+
+    result = tryArray(dataObj.tracks);
+    if (result) return result;
+
+    result = tryArray(dataObj.data);
+    if (result) return result;
+  }
+
+  
+  result = tryArray(obj.items);
+  if (result) return result;
+
+  result = tryArray(obj.tracks);
+  if (result) return result;
+
+  result = tryArray(obj.results);
+  if (result) return result;
+
+  return [];
+}
+
+export async function getTracksByPlaylist(
+  playlistId: number
+): Promise<Track[]> {
   const res = await fetch(`${API_URL}/catalog/selection/${playlistId}/`, {
     method: "GET",
     headers: { "Content-Type": "application/json" },
@@ -43,6 +79,6 @@ export async function getTracksByPlaylist(playlistId: number): Promise<Track[]> 
     throw new Error("Ошибка загрузки подборки");
   }
 
-  const json = await res.json();
+  const json: unknown = await res.json();
   return extractTracks(json);
 }

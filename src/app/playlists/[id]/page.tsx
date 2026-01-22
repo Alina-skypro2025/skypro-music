@@ -9,6 +9,19 @@ import Centerblock from "@/app/components/Centerblock/Centerblock";
 
 import styles from "@/app/page.module.css";
 
+function getParamId(params: unknown): string | undefined {
+  if (typeof params !== "object" || params === null) return undefined;
+
+  const idValue = (params as Record<string, unknown>).id;
+
+  if (Array.isArray(idValue)) {
+    const first = idValue[0];
+    return typeof first === "string" ? first : undefined;
+  }
+
+  return typeof idValue === "string" ? idValue : undefined;
+}
+
 export default function PlaylistPage() {
   const router = useRouter();
   const params = useParams();
@@ -16,8 +29,7 @@ export default function PlaylistPage() {
   const [checked, setChecked] = useState(false);
 
   const playlistId = useMemo(() => {
-    const raw = (params as any)?.id;
-    const value = Array.isArray(raw) ? raw[0] : raw;
+    const value = getParamId(params);
     const id = Number(value);
     return Number.isFinite(id) ? id : null;
   }, [params]);
